@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?><DEFECTS><DEFECT>
+    <SFA>
+      <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+      <FILENAME>kdstart.cpp</FILENAME>
+      <LINE>115</LINE>
+      <COLUMN>27</COLUMN>
+    </SFA>
+    <DEFECTCODE>6001</DEFECTCODE>
+    <DESCRIPTION>Using uninitialized memory 'root'.</DESCRIPTION>
+    <FUNCTION>KDnode::deleteTree</FUNCTION>
+    <DECORATED>?deleteTree@KDnode@@QEAAXPEAV1@@Z</DECORATED>
+    <FUNCLINE>107</FUNCLINE>
+    <PROBABILITY>1</PROBABILITY>
+    <RANK>3</RANK>
+    <CATEGORY>
+      <RULECATEGORY>mspft</RULECATEGORY>
+    </CATEGORY>
+    <PATH>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>109</LINE>
+        <COLUMN>17</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>111</LINE>
+        <COLUMN>22</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>112</LINE>
+        <COLUMN>22</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>113</LINE>
+        <COLUMN>12</COLUMN>
+        <KEYEVENT>
+          <ID>1</ID>
+          <KIND>declaration</KIND>
+          <IMPORTANCE>Essential</IMPORTANCE>
+          <MESSAGE>'root' is not initialized</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>115</LINE>
+        <COLUMN>27</COLUMN>
+        <KEYEVENT>
+          <ID>2</ID>
+          <KIND>usage</KIND>
+          <IMPORTANCE>Essential</IMPORTANCE>
+          <MESSAGE>'root' is used, but may not have been initialized</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+    </PATH>
+  </DEFECT><DEFECT>
+    <SFA>
+      <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+      <FILENAME>kdstart.cpp</FILENAME>
+      <LINE>231</LINE>
+      <COLUMN>23</COLUMN>
+    </SFA>
+    <DEFECTCODE>6001</DEFECTCODE>
+    <DESCRIPTION>Using uninitialized memory 'root'.</DESCRIPTION>
+    <FUNCTION>deleteTree</FUNCTION>
+    <DECORATED>?deleteTree@@YAXPEAVKDnode@@@Z</DECORATED>
+    <FUNCLINE>223</FUNCLINE>
+    <PROBABILITY>1</PROBABILITY>
+    <RANK>3</RANK>
+    <CATEGORY>
+      <RULECATEGORY>mspft</RULECATEGORY>
+    </CATEGORY>
+    <PATH>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>225</LINE>
+        <COLUMN>13</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>227</LINE>
+        <COLUMN>18</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>228</LINE>
+        <COLUMN>18</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>229</LINE>
+        <COLUMN>8</COLUMN>
+        <KEYEVENT>
+          <ID>1</ID>
+          <KIND>declaration</KIND>
+          <IMPORTANCE>Essential</IMPORTANCE>
+          <MESSAGE>'root' is not initialized</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\</FILEPATH>
+        <FILENAME>kdstart.cpp</FILENAME>
+        <LINE>231</LINE>
+        <COLUMN>23</COLUMN>
+        <KEYEVENT>
+          <ID>2</ID>
+          <KIND>usage</KIND>
+          <IMPORTANCE>Essential</IMPORTANCE>
+          <MESSAGE>'root' is used, but may not have been initialized</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+    </PATH>
+  </DEFECT></DEFECTS>

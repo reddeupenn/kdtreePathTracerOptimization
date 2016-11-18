@@ -1,0 +1,27 @@
+﻿  kdstart.cpp
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(4): warning C4603: '_CRTDBG_MAP_ALLOC': macro is not defined or definition is different after precompiled header use
+  c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(4): note: Add macro to precompiled header instead of defining here
+  c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(8): note: use of precompiled header
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(83): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(84): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(85): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(149): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(150): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(151): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(334): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 4 has type 'double'
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(334): warning C4473: 'printf' : not enough arguments passed for format string
+  c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(334): note: placeholders and their parameters expect 10 variadic arguments, but 9 were provided
+  c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(334): note: the missing variadic argument 10 is required by format string '%0.1f'
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(418): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(458): warning C4244: 'argument': conversion from 'double' to 'unsigned int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(460): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(463): warning C4244: 'argument': conversion from 'double' to 'unsigned int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(465): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(466): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(479): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(655): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(684): warning C4305: 'argument': truncation from 'double' to 'float'
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(685): warning C4305: 'argument': truncation from 'double' to 'float'
+c:\users\moi\documents\visual studio 2015\projects\kdstart\kdstart\kdstart.cpp(686): warning C4305: 'argument': truncation from 'double' to 'float'
+  kdstart.vcxproj -> C:\Users\moi\documents\visual studio 2015\Projects\kdstart\Debug\kdstart.exe
+  kdstart.vcxproj -> C:\Users\moi\documents\visual studio 2015\Projects\kdstart\Debug\kdstart.pdb (Full PDB)
