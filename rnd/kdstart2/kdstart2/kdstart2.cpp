@@ -10,8 +10,13 @@
 #include <stdio.h>
 #include <vector>
 
+#include <string>
+#include <fstream>
+
 #include <iostream>
 #include <iomanip>
+
+#include <Shlobj.h>
 
 using namespace std;
 
@@ -55,6 +60,8 @@ public:
           z1, z2, z3;
 
     float center[3];
+    float mins[3];
+    float maxs[3];
 
     Triangle()
     {
@@ -65,6 +72,7 @@ public:
         center[0] = 0.0;
         center[1] = 0.0;
         center[2] = 0.0;
+        computeBounds();
     }
 
     Triangle(float X1, float Y1, float Z1,
@@ -76,6 +84,7 @@ public:
         x3 = X3; y3 = Y3; z3 = Z3;
 
         computeCentroid();
+        computeBounds();
     }
 
     ~Triangle() {}
@@ -87,6 +96,7 @@ public:
         x3 = val; y3 = val; z3 = val;
 
         center[0] = val; center[1] = val; center[2] = val;
+        computeBounds();
     }
 
     void setValues(float X1, float Y1, float Z1,
@@ -98,6 +108,7 @@ public:
         x3 = X3; y3 = Y3; z3 = Z3;
 
         computeCentroid();
+        computeBounds();
     }
 
     void computeCentroid()
@@ -107,13 +118,24 @@ public:
         center[2] = (z1 + z2 + z3) / 3.0;
     }
 
+    void computeBounds()
+    {
+        mins[0] = x1 < x2 ? (x1 < x3 ? x1 : x3) : (x2 < x3 ? x2 : x3);
+        mins[1] = y1 < y2 ? (y1 < y3 ? y1 : y3) : (y2 < y3 ? y2 : y3);
+        mins[2] = z1 < z2 ? (z1 < z3 ? z1 : z3) : (z2 < z3 ? z2 : z3);
+
+        maxs[0] = x1 > x2 ? (x1 > x3 ? x1 : x3) : (x2 > x3 ? x2 : x3);
+        maxs[1] = y1 > y2 ? (y1 > y3 ? y1 : y3) : (y2 > y3 ? y2 : y3);
+        maxs[2] = z1 > z2 ? (z1 > z3 ? z1 : z3) : (z2 > z3 ? z2 : z3);
+    }
+
 };
 
 class BoundingBox
 {
 public:
-    float xmin, ymin, zmin;
-    float xmax, ymax, zmax;
+    float mins[3];
+    float maxs[3];
     //float centerx, centery, centerz;
     float center[3]{};
 
@@ -125,8 +147,8 @@ public:
     BoundingBox(float xMin, float yMin, float zMin,
                 float xMax, float yMax, float zMax)
     {
-        setBounds(xMin, yMin, zMin,
-                  xMax, yMax, zMax);
+        setBounds(mins[0], mins[1], mins[2],
+                  maxs[0], maxs[1], maxs[2]);
         updateCentroid();
 
     }
@@ -139,34 +161,35 @@ public:
 
     void setBounds(Triangle* t)
     {
-        xmin = t->x1 < t->x2 ? (t->x1 < t->x3 ? t->x1 : t->x3) : (t->x2 < t->x3 ? t->x2 : t->x3);
-        ymin = t->y1 < t->y2 ? (t->y1 < t->y3 ? t->y1 : t->y3) : (t->y2 < t->y3 ? t->y2 : t->y3);
-        zmin = t->z1 < t->z2 ? (t->z1 < t->z3 ? t->z1 : t->z3) : (t->z2 < t->z3 ? t->z2 : t->z3);
+        mins[0] = t->x1 < t->x2 ? (t->x1 < t->x3 ? t->x1 : t->x3) : (t->x2 < t->x3 ? t->x2 : t->x3);
+        mins[1] = t->y1 < t->y2 ? (t->y1 < t->y3 ? t->y1 : t->y3) : (t->y2 < t->y3 ? t->y2 : t->y3);
+        mins[2] = t->z1 < t->z2 ? (t->z1 < t->z3 ? t->z1 : t->z3) : (t->z2 < t->z3 ? t->z2 : t->z3);
 
-        xmax = t->x1 > t->x2 ? (t->x1 > t->x3 ? t->x1 : t->x3) : (t->x2 > t->x3 ? t->x2 : t->x3);
-        ymax = t->y1 > t->y2 ? (t->y1 > t->y3 ? t->y1 : t->y3) : (t->y2 > t->y3 ? t->y2 : t->y3);
-        zmax = t->z1 > t->z2 ? (t->z1 > t->z3 ? t->z1 : t->z3) : (t->z2 > t->z3 ? t->z2 : t->z3);
+        maxs[0] = t->x1 > t->x2 ? (t->x1 > t->x3 ? t->x1 : t->x3) : (t->x2 > t->x3 ? t->x2 : t->x3);
+        maxs[1] = t->y1 > t->y2 ? (t->y1 > t->y3 ? t->y1 : t->y3) : (t->y2 > t->y3 ? t->y2 : t->y3);
+        maxs[2] = t->z1 > t->z2 ? (t->z1 > t->z3 ? t->z1 : t->z3) : (t->z2 > t->z3 ? t->z2 : t->z3);
+        updateCentroid();
     }
 
     void updateCentroid()
     {
-        center[0] = (xmin + xmax) / 2.0;
-        center[1] = (ymin + ymax) / 2.0;
-        center[2] = (zmin + zmax) / 2.0;
+        center[0] = (mins[0] + maxs[0]) / 2.0;
+        center[1] = (mins[1] + maxs[1]) / 2.0;
+        center[2] = (mins[2] + maxs[2]) / 2.0;
     }
 
     void setBounds(float xMin, float yMin, float zMin,
                    float xMax, float yMax, float zMax)
     {
-        xmin = xMin; ymin = yMin; zmin = zMin;
-        xmax = xMax; ymax = yMax; zmax = zMax;
+        mins[0] = xMin; mins[1] = yMin; mins[2] = zMin;
+        maxs[0] = xMax; maxs[1] = yMax; maxs[2] = zMax;
         updateCentroid();
     }
 
     void setBounds(float val)
     {
-        xmin = val; ymin = val; zmin = val;
-        xmax = val; ymax = val; zmax = val;
+        mins[0] = val; mins[1] = val; mins[2] = val;
+        maxs[0] = val; maxs[1] = val; maxs[2] = val;
         center[0] = val; center[1] = val; center[2] = val;
         // centery = val; centerz = val;
     }
@@ -215,6 +238,7 @@ public:
         triangles.resize(size);
         memcpy(triangles.data(), t, sizeof(Triangle*) * size);
         this->axis = axis;
+        updateBbox();
     }
 
     ~KDnode() {}
@@ -239,13 +263,15 @@ public:
 
     void mergeBbox(BoundingBox b)
     {
-        bbox.xmin = bbox.xmin > b.xmin ? b.xmin : bbox.xmin;
-        bbox.ymin = bbox.ymin > b.ymin ? b.ymin : bbox.ymin;
-        bbox.zmin = bbox.zmin > b.zmin ? b.zmin : bbox.zmin;
+        bbox.mins[0] = bbox.mins[0] > b.mins[0] ? b.mins[0] : bbox.mins[0];
+        bbox.mins[1] = bbox.mins[1] > b.mins[1] ? b.mins[1] : bbox.mins[1];
+        bbox.mins[2] = bbox.mins[2] > b.mins[2] ? b.mins[2] : bbox.mins[2];
 
-        bbox.xmax = bbox.xmax < b.xmax ? b.xmax : bbox.xmax;
-        bbox.ymax = bbox.ymax < b.ymax ? b.ymax : bbox.ymax;
-        bbox.zmax = bbox.zmax < b.zmax ? b.zmax : bbox.zmax;
+        bbox.maxs[0] = bbox.maxs[0] < b.maxs[0] ? b.maxs[0] : bbox.maxs[0];
+        bbox.maxs[1] = bbox.maxs[1] < b.maxs[1] ? b.maxs[1] : bbox.maxs[1];
+        bbox.maxs[2] = bbox.maxs[2] < b.maxs[2] ? b.maxs[2] : bbox.maxs[2];
+
+        bbox.updateCentroid();
     }
 
     BoundingBox updateBbox()
@@ -261,7 +287,7 @@ public:
         {
             updateTriangleBbox(triangles[i]);
         }
-
+        
         if (left)
         {
             mergeBbox(left->updateBbox());
@@ -271,30 +297,55 @@ public:
         {
             mergeBbox(right->updateBbox());
         }
+        
+        //bbox.updateCentroid();
+        
+        // pad bounds
+        float pad = 0.001;
+        bbox.mins[0] -= pad;
+        bbox.mins[1] -= pad;
+        bbox.mins[2] -= pad;
+        
+        bbox.maxs[0] += pad;
+        bbox.maxs[1] += pad;
+        bbox.maxs[2] += pad;
 
         return bbox;
     }
 
-    void split()
+    void split(int maxdepth)
     {
         int num = triangles.size();
 
-        // don't split if we have less than 2 triangles
-        if (num > 1)
+        if (num == 0)
         {
+            if (left)
+                left->split(maxdepth);
 
+            if (right)
+                right->split(maxdepth);
+        }
+        // don't split if we have less than 2 triangles
+        else if (num > 1)
+        {
             int level = getLevel(this);
+
+            if (level > maxdepth)
+                return;
+
+            level = level % 3;
 
             std::vector<Triangle*> leftSide;
             std::vector<Triangle*> rightSide;
-
+            
+            //printf("\nlevel = %d", level);
             for (int i = 0; i < num; i++)
             {
-                if (triangles[i]->center[level] < bbox.center[level])
+                if (triangles[i]->mins[level] < bbox.center[level]+0.0001)
                 {
                     leftSide.push_back(triangles[i]);
                 }
-                else
+                if (triangles[i]->maxs[level] >= bbox.center[level]-0.0001)
                 {
                     rightSide.push_back(triangles[i]);
                 }
@@ -308,12 +359,15 @@ public:
             {
                 if (left == NULL)
                 {
-                    left = new KDnode(leftSide.data(), leftSide.size(), level + 1);
+                    left = new KDnode(leftSide.data(), leftSide.size(), (level + 1)%3);
+                    left->updateBbox();
                     left->parent = this;
+                    left->split(maxdepth);
                 }
                 else
                 {
-                    left->split();
+                    left->updateBbox();
+                    left->split(maxdepth);
                 }
             }
 
@@ -321,16 +375,21 @@ public:
             {
                 if (right == NULL)
                 {
-                    right = new KDnode(rightSide.data(), rightSide.size(), level + 1);
+                    right = new KDnode(rightSide.data(), rightSide.size(), (level + 1)%3);
+                    right->updateBbox();
                     right->parent = this;
+                    right->split(maxdepth);
                 }
                 else
                 {
-                    right->split();
+                    right->updateBbox();
+                    right->split(maxdepth);
                 }
             }
 
-            triangles.erase(triangles.begin(), triangles.end());
+            // split was successful so we remove the current triangles from the node
+            if (leftSide.size() != triangles.size() || rightSide.size() != triangles.size())
+                triangles.erase(triangles.begin(), triangles.end());
         }
     }
 
@@ -381,8 +440,8 @@ public:
                         root->parent->bbox.center[0],
                         root->parent->bbox.center[1],
                         root->parent->bbox.center[2],
-                        root->bbox.xmin, root->bbox.ymin, root->bbox.zmin,
-                        root->bbox.xmax, root->bbox.ymax, root->bbox.zmax);
+                        root->bbox.mins[0], root->bbox.mins[1], root->bbox.mins[2],
+                        root->bbox.maxs[0], root->bbox.maxs[1], root->bbox.maxs[2]);
             }
             else
             {
@@ -391,8 +450,8 @@ public:
                         root->bbox.center[1],
                         root->bbox.center[2],
                         root->axis,
-                        root->bbox.xmin, root->bbox.ymin, root->bbox.zmin,
-                        root->bbox.xmax, root->bbox.ymax, root->bbox.zmax);
+                        root->bbox.mins[0], root->bbox.mins[1], root->bbox.mins[2],
+                        root->bbox.maxs[0], root->bbox.maxs[1], root->bbox.maxs[2]);
             }
 
 
@@ -645,40 +704,12 @@ public:
             if (n->left)
             {
                 n->left->updateBbox(n->left);
-                /*
-                BoundingBox leftbb = n->left->bbox;
-                if (leftbb.xmin < current.xmin)
-                    n->bbox.xmin = leftbb.xmin;
-                if (leftbb.ymin < current.ymin)
-                    n->bbox.ymin = leftbb.ymin;
-                if (leftbb.zmin < current.zmin)
-                    n->bbox.zmin = leftbb.zmin;
-                if (leftbb.xmax > current.xmax)
-                    n->bbox.xmax = leftbb.xmax;
-                if (leftbb.ymax > current.ymax)
-                    n->bbox.ymax = leftbb.ymax;
-                if (leftbb.zmax > current.zmax)
-                    n->bbox.zmax = leftbb.zmax;
-                */
+                n->left->bbox.updateCentroid();
             }
             if (n->right)
             {
                 n->right->updateBbox(n->right);
-                /*
-                BoundingBox rightbb = n->right->bbox;
-                if (rightbb.xmin < current.xmin)
-                    n->bbox.xmin = rightbb.xmin;
-                if (rightbb.ymin < current.ymin)
-                    n->bbox.ymin = rightbb.ymin;
-                if (rightbb.zmin < current.zmin)
-                    n->bbox.zmin = rightbb.zmin;
-                if (rightbb.xmax > current.xmax)
-                    n->bbox.xmax = rightbb.xmax;
-                if (rightbb.ymax > current.ymax)
-                    n->bbox.ymax = rightbb.ymax;
-                if (rightbb.zmax > current.zmax)
-                    n->bbox.zmax = rightbb.zmax;
-                */
+                n->right->bbox.updateCentroid();
             }
         }
     }
@@ -698,14 +729,70 @@ void deleteTree(KDnode* root)
     {
         deleteTree(root->left);
         deleteTree(root->right);
-        delete root;
+        //delete root;
 
         if (root->left != NULL)
             root->left = NULL;
         if (root->right != NULL)
             root->right = NULL;
+
+        delete root;
         root = NULL;
     }
+}
+
+
+std::vector<Triangle*> getTrianglesFromFile(const char* path)
+{
+    std::vector<Triangle*>triangles;
+
+    string line;
+    ifstream file(path);
+
+    if (file.is_open())
+    {
+        int iter = 0;
+        while (getline(file, line))
+        {
+            float x1 = atof(line.c_str());
+            getline(file, line); float y1 = atof(line.c_str());
+            getline(file, line); float z1 = atof(line.c_str());
+            getline(file, line); float x2 = atof(line.c_str());
+            getline(file, line); float y2 = atof(line.c_str());
+            getline(file, line); float z2 = atof(line.c_str());
+            getline(file, line); float x3 = atof(line.c_str());
+            getline(file, line); float y3 = atof(line.c_str());
+            getline(file, line); float z3 = atof(line.c_str());
+
+            Triangle* t = new Triangle(x1, y1, z1,
+                                       x2, y2, z2, 
+                                       x3, y3, z3);
+            triangles.push_back(t);
+        }
+    }
+    return triangles;
+}
+
+void printToFile(KDnode* root, ofstream& fileout)
+{
+    if (root != NULL)
+    {
+        fileout << root->bbox.mins[0] << " " << root->bbox.mins[1] << " " << root->bbox.mins[2] << " "
+                << root->bbox.maxs[0] << " " << root->bbox.maxs[1] << " " << root->bbox.maxs[2] << "\n";
+
+        printToFile(root->left, fileout);
+        printToFile(root->right, fileout);
+    }
+}
+
+void writeKDtoFile(KDnode* root, const char* path)
+{
+    ofstream fileout;
+    fileout.open(path);
+
+    printToFile(root, fileout);
+
+    fileout.close();
 }
 
 int main()
@@ -717,11 +804,13 @@ int main()
         Point(7, 4, 4) };
 
 
+    /*
     Triangle t[] = { Triangle(10, 10, 11, 13, 12, 8, 9, 10, 8),
                      Triangle(1, 8, 2, -1, 3, 2, 5, 8, 10),
                      Triangle(12, 15, 14, 20, 15, 26, 14, 26, 36),
                      Triangle(-3, -4, -4, -1, -5, -6, -7, -3, -10),
                      Triangle(20, 18, 12, 15, 30, 20, 50, 90, 31) };
+    */
 
     int TRICOUNT = 5;
     Triangle** tempT = new Triangle*[TRICOUNT];
@@ -732,10 +821,21 @@ int main()
     tempT[4] = new Triangle(20, 18, 12, 15, 30, 20, 50, 90, 31);
 
 
+    // read file generated from Houdini and get triangles
+    char path[1024];
+    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path)))
+    {
+        printf("path = %s\n", path);
+    }
+    strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
+    printf("path = %s\n", path);
 
-    //Triangle first(-30, -10.0, -28, -6, -50, -48, -38, -70, -49);
-    
-    KDnode* KD = new KDnode(tempT, 5);
+    std::vector<Triangle*> triangles = getTrianglesFromFile(path);
+
+
+     
+    KDnode* KD = new KDnode(triangles.data(), triangles.size());
+    //KDnode* KD = new KDnode(tempT, 5);
     //KDnode* KD = new KDnode(&first, 0);
     //KDnode* KD1 = new KDnode(1.0, 3.0, 1, 0);
     //KDnode* KD2 = new KDnode(1.0, 3.0, 1, 0);
@@ -774,7 +874,7 @@ int main()
     BoundingBox b(&(t0));
 
     printf("\nbbox vals min: [%.1f %.1f %.1f]\n          max: [%.1f, %.1f, %.1f]\n",
-           b.xmin, b.ymin, b.zmin, b.xmax, b.ymax, b.zmax);
+           b.mins[0], b.mins[1], b.mins[2], b.maxs[0], b.maxs[1], b.maxs[2]);
 
 
     int depth = KD->getRoot()->getDepth(KD->getRoot(), 0);
@@ -782,57 +882,45 @@ int main()
 
     KD->printTriangleCenters();
     KD->printTree(KD);
-    KD->split();
+    
+    KD->split(3);
+
     printf("\nreprinting after split\n");
-    KD->updateBbox();
     KD->printTree(KD);
+
+    //for (int i=0; i<8; i++)
+    //    KD->split();
+
+    //printf("\nreprinting after split\n");
+    //KD->printTree(KD);
+
+    //KD->split();
+    //KD->updateBbox();
+
+    //printf("\nreprinting after split\n");
+    //KD->printTree(KD);
 
     KD->printTriangleCenters();
 
-    //for (int i=0; i<1000*3; i++)
-    //    cout << frand(1.0)*10 << endl;
-
-
-
-    //Point* points = {Point()}
-
-    //int * x =  (int*)malloc(3 * sizeof(int));
-
-    //KD->pprint(KD, 0, 0);
-    //printf("\n");
-
-
-
+    
+    
 
 
     cout << KD << endl;
 
 
-
-    //KD->pprint2(KD);
-
-/*
-    // vector copying
+    // write out data before quitting
+    char pathout[1024];
+    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, pathout)))
+    {
+        printf("path = %s\n", pathout);
+    }
+    strcat_s(pathout, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/dataout");
+    printf("path = %s\n", pathout);
     
-    int NUM = 15;
-    std::vector<int>v;
-    v.resize(NUM);
-
-    int* x = new int[NUM];
-    for (int i = 0; i < NUM; i++)
-        x[i] = i;
-
-    memcpy(v.data(), x, sizeof(int) * NUM);
-    delete[] x;
-
-    printf("\n");
-    for (int i = 0; i < v.size(); i++)
-        printf("%d ", v[i]);
-    printf("\n");
-
-    // vector copying end
-*/
+    writeKDtoFile(KD, pathout);
     
+
 
     deleteTree(KD->getRoot());
 
