@@ -17,6 +17,8 @@ intersecting triangles.  There is a cost of computation for
 generating the KD-Tree but in most cases the scene is mostly static
 geometry which should benefit from this data structure.
 
+![kdtreewiki](./images/3dtree.png) (image from wikipedia)
+
 * Path tracing hurdles.
 Complex geometry tends to take a lot of memory.  The current path
 tracer is unable to load complex geometry and crashes when the limit
