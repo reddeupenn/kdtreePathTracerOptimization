@@ -54,6 +54,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
 
   * Bugs are not trivial to track down.  At first the tree was going deeper than expected with duplication along the way.  This is easy to see now that the setup is in place.  This makes degugging a lot easier The initial results look promising.
   ![iterations_1](./images/iterations_1.gif)
+  ![stanfordbunny_1](./images/stanfordbunny_1.gif)
 
   * Result of a one branch traversal seem to be working correctly.
   ![onebranch_1](./images/onebranch_1.gif)
