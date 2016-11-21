@@ -1,0 +1,8 @@
+newmtl almondKernels:shellSG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd hazelnut_diff.tga
+bump hazelnut_normal.png -bm 1
+Ni 1.00

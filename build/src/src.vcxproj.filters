@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\stb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\glslUtility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\preview.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\tiny_obj_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\objmesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\interactions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\intersections.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\glslUtility.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\pathtrace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\sceneStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\preview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\tiny_obj_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\objmesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\pathtrace.cu" />
+    <CustomBuild Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\build\src\CMakeFiles\src.dir\$(Configuration)\src_generated_pathtrace.cu.obj">
+      <Filter>Object Files</Filter>
+    </Object>
+    <Object Include="C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\build\src\CMakeFiles\src.dir\$(Configuration)\src_intermediate_link.obj">
+      <Filter>Object Files</Filter>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2D1E5E26-6234-39CD-9F8A-BF595FDB9A37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{0B955072-3D8F-37FC-B34B-E3B81EC20993}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object Files">
+      <UniqueIdentifier>{AB606133-BF8C-3D4E-A92F-2375DD8DAFD8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

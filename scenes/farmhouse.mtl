@@ -1,0 +1,5 @@
+newmtl lambert13SG
+illum 2
+Kd 0.50 0.40 0.30
+Ka 0.50 0.40 0.30
+Ni 1.00

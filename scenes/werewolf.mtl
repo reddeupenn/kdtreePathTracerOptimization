@@ -1,0 +1,8 @@
+newmtl werewolfmat
+Ns 100.0
+d 1.0
+illum 1
+Kd 0.8 0.4 0.1
+Ka 0.8 0.4 0.1
+Ks 0.0 0.6 0.6
+Ni 1.52

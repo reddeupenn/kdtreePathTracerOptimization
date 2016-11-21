@@ -1,0 +1,8 @@
+newmtl spheremat
+Ns 100.0
+d 1.0
+illum 1
+Kd 0.1 0.2 0.9
+Ka 0.1 0.2 0.9
+Ks 0.8 0.8 0.8
+Ni 1.52
