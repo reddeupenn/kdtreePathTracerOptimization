@@ -31,3 +31,33 @@ Streaming alone, however presents additional complexities for optimization.  KD-
 * Initial tentative road map
 The project will consist of coming up with and implementing a K-D Tree that solves these issues with CPU and GPU generation.
 
+* KD-tree implementation progress 1
+Currently building the main KD-Tree library in rnd as a stand alone library.  The current implamentation uses the following data astructures.
+  * Triangle:  
+  This hold the data what will represent the mesh triangles in the path tracer.  The path tracer will have to adapted in order to pass in triangle data instead of the usual point positions.
+  The Triangle contains centroid information as well as bounds, the is needed for leaf nodes.  Centroid information may be discarded in the future.
+  * BoundingBox:  
+  This contains bounding information as well as a helper to compute bounds and centroids for triangles.  This does not contain any triangle information as it is not necessary for intermediate nodes.
+  * KDnode:  
+  This is where all the logic resides.  Currently the building and accessing of the tree is possible.
+    * The core implementation functions not including trivial helpers:
+      * split(): splits the tree with the specified depth. This is useful for limiting the number of level to avoid going as far as a leaf per triangle as this may not be the most efficient configuration.
+      * updateBbox() and mergeBbox() for adding triangles and updating the node bounds when merging with other boundingboxes.
+      * deleteTree() for clean memory management.
+      * printTree(), printTriangleCenters() for printing the tree contents as a sanity check.
+      * getDepth(), getLevel() for checking node level and the depth from a node to a leaf.
+
+  * This setup is being tested with a custom SideFX Houdini binding for verifying and validating the results.  This binding saves the triangles of any object from Houdini to a file.  The file is then read by the KD-Tree class which splits the data and writes out the tree to a file.  The generated file is then read in Houdini where the bounding hierarchy is displayed using a custom library build as a Houdini Python SOP node.
+
+  * Houdini visualization network.
+  ![houdiniviztool](./images/houdini_network.png)
+
+  * Bugs are not trivial to track down.  At first the tree was going deeper than expected with duplication along the way.  This is easy to see now that the setup is in place.  This makes degugging a lot easier The initial results look promising.
+    * ![iterations_1](./images/iterations_1.png)
+
+  * Result of a one branch traversal seem to be working correctly.
+  ![onebranch_1](./images/onebranch_1.gif)
+
+  * Next milestone will be to generate and traverse the tree using loops.  Removing all recursion is not trivial, nor is it cleaner but it's necessary for CUDA because of the lack of recusrion and the non dynamic memory allocation needed for optimization.
+
+

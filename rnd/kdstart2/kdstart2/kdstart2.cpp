@@ -883,7 +883,7 @@ int main()
     KD->printTriangleCenters();
     KD->printTree(KD);
     
-    KD->split(3);
+    KD->split(30);
 
     printf("\nreprinting after split\n");
     KD->printTree(KD);
