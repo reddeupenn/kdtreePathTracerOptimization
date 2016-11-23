@@ -20,8 +20,6 @@
 #include <Shlobj.h>
 
 
-
-
 namespace KDN
 {
     // Used to prototype.  Not used for triangle KD tree.
