@@ -1,4 +1,0 @@
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/build/CMakeFiles/kdtreePathTracerOptimization.dir
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/build/CMakeFiles/ZERO_CHECK.dir
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/build/src/CMakeFiles/src.dir

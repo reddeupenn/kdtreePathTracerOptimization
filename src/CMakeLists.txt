@@ -19,6 +19,8 @@ set(SOURCE_FILES
     "tiny_obj_loader.cpp"
     "objmesh.h"
     "objmesh.cpp"
+    "KDnode.h"
+    "KDnode.cpp"
     )
 
 cuda_add_library(src

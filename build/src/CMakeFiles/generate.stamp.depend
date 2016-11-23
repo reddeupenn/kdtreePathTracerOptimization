@@ -1,4 +1,0 @@
-# CMake generation dependency list for this directory.
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/src/CMakeLists.txt
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/build/src/CMakeFiles/src.dir/src_generated_pathtrace.cu.obj.depend
-C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/cmake/FindCUDA/run_nvcc.cmake

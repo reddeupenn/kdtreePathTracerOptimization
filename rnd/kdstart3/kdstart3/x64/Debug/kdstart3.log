@@ -1,0 +1,40 @@
+﻿  KDnode.cpp
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(122): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(123): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(124): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(183): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(184): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(185): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(75): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(100): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(114): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(158): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(174): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(223): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 2 has type 'unsigned __int64'
+  c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.cpp(223): note: consider using '%zd' in the format string
+  Generating Code...
+  Compiling...
+  kdstart3.cpp
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(4): warning C4603: '_CRTDBG_MAP_ALLOC': macro is not defined or definition is different after precompiled header use
+  c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(4): note: Add macro to precompiled header instead of defining here
+  c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(8): note: use of precompiled header
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(122): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(123): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(124): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(183): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(184): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdnode.h(185): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(31): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(66): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(67): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(68): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(69): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(70): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(71): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(72): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(73): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(74): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\moi\git\cis565\kdtreepathtraceroptimization\rnd\kdstart3\kdstart3\kdstart3.cpp(146): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  Generating Code...
+  kdstart3.vcxproj -> C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\rnd\kdstart3\x64\Debug\kdstart3.exe
+  kdstart3.vcxproj -> C:\Users\moi\git\CIS565\kdtreePathTracerOptimization\rnd\kdstart3\x64\Debug\kdstart3.pdb (Full PDB)
