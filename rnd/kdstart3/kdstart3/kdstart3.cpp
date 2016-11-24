@@ -20,6 +20,7 @@
 
 
 #include "KDnode.h"
+#include "KDtree.h"
 
 using namespace std;
 
@@ -106,20 +107,20 @@ void writeKDtoFile(KDN::KDnode* root, const char* path)
 
 int main()
 {
-
+    /*
     KDN::Point a[] = { KDN::Point(1.5, 20, 0),
         KDN::Point(1, 8, 2),
         KDN::Point(2, 5, 4),
         KDN::Point(7, 4, 4) };
 
 
-    /*
-    Triangle t[] = { Triangle(10, 10, 11, 13, 12, 8, 9, 10, 8),
-    Triangle(1, 8, 2, -1, 3, 2, 5, 8, 10),
-    Triangle(12, 15, 14, 20, 15, 26, 14, 26, 36),
-    Triangle(-3, -4, -4, -1, -5, -6, -7, -3, -10),
-    Triangle(20, 18, 12, 15, 30, 20, 50, 90, 31) };
-    */
+    
+    //Triangle t[] = { Triangle(10, 10, 11, 13, 12, 8, 9, 10, 8),
+    //Triangle(1, 8, 2, -1, 3, 2, 5, 8, 10),
+    //Triangle(12, 15, 14, 20, 15, 26, 14, 26, 36),
+    //Triangle(-3, -4, -4, -1, -5, -6, -7, -3, -10),
+    //Triangle(20, 18, 12, 15, 30, 20, 50, 90, 31) };
+    
 
     int TRICOUNT = 5;
     KDN::Triangle** tempT = new KDN::Triangle*[TRICOUNT];
@@ -151,13 +152,13 @@ int main()
     //KDN::KDnode* KD3 = new KDN::KDnode(1.0, 3.0, 1, 0);
     //KDN::KDnode* KD4 = new KDN::KDnode(1.0, 3.0, 1, 0);
 
-    /*
-    for (int i = 0; i < 5; i++)
-    {
-    KDN::KDnode* x = new KDN::KDnode(&(t[i]));
-    KD->insert(x);
-    }
-    */
+    
+    //for (int i = 0; i < 5; i++)
+    //{
+    //KDN::KDnode* x = new KDN::KDnode(&(t[i]));
+    //KD->insert(x);
+    //}
+    
 
     KD->updateBbox();
 
@@ -239,6 +240,82 @@ int main()
     delete[] tempT;
 
     //int* cc = new int[4];
+    */
+
+
+
+
+    // read file generated from Houdini and get triangles
+    char path[1024];
+    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path)))
+    {
+        printf("path = %s\n", path);
+    }
+    strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
+    printf("path = %s\n", path);
+
+    // test kdtree class generator
+    //std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
+    //KDtree* KDT = new KDtree(triangles);
+
+    KDtree* KDT = new KDtree(path);
+
+
+    KDT->rootNode->updateBbox();
+
+
+
+    KDT->printTree();
+
+    cout << KDT->rootNode << endl;
+    cout << KDT->rootNode->getRoot() << endl;
+
+
+    KDT->rootNode->printTriangleCenters();
+    KDT->printTree();
+
+    KDT->split(30);
+
+    printf("\nreprinting after split\n");
+    KDT->printTree();
+
+    //for (int i=0; i<8; i++)
+    //    KD->split();
+
+    //printf("\nreprinting after split\n");
+    //KD->printTree(KD);
+
+    //KD->split();
+    //KD->updateBbox();
+
+    //printf("\nreprinting after split\n");
+    //KD->printTree(KD);
+
+    KDT->rootNode->printTriangleCenters();
+
+
+
+
+
+    cout << KDT << endl;
+
+
+    // write out data before quitting
+    char pathout[1024];
+    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, pathout)))
+    {
+        printf("path = %s\n", pathout);
+    }
+    strcat_s(pathout, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/dataout");
+    printf("path = %s\n", pathout);
+
+    writeKDtoFile(KDT->rootNode, pathout);
+
+
+    delete KDT;
+    //deleteTree(KD->getRoot());
+
+
 
     _CrtDumpMemoryLeaks();
     return 0;

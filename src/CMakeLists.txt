@@ -21,6 +21,8 @@ set(SOURCE_FILES
     "objmesh.cpp"
     "KDnode.h"
     "KDnode.cpp"
+    "KDtree.h"
+    "KDtree.cpp"
     )
 
 cuda_add_library(src

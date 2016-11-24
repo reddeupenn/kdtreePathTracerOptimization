@@ -3,6 +3,27 @@
 #include <cstring>
 
 #include "objmesh.h"
+
+
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
+#include <random>
+#include <stdio.h>
+#include <vector>
+
+#include <string>
+#include <fstream>
+
+#include <iostream>
+#include <iomanip>
+
+#include <Shlobj.h>
+
+#include "KDnode.h"
+#include "KDtree.h"
+
 static std::string startTimeString;
 
 // For camera controls
@@ -63,6 +84,77 @@ void saxpy_fast2(float A, thrust::device_vector<float>& X, thrust::device_vector
 
 int main(int argc, char** argv) {
     startTimeString = currentTimeString();
+
+
+    if (argc > 1)
+    {
+        // test mode for kdtree
+        // run test geometry before exiting
+
+        for (int i = 1; i < argc; i++)
+        {
+            if (strcmp(argv[i], "-t") == 0)
+            {
+                printf("\n running test\n");
+
+                // read file generated from Houdini and get triangles
+                char path[1024];
+                if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path)))
+                {
+                    printf("path = %s\n", path);
+                }
+                strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
+                printf("path = %s\n", path);
+
+                //std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
+
+                // test kdtree class generator
+                KDtree* KDT = new KDtree(path);
+                KDT->rootNode->updateBbox();
+
+
+                KDT->printTree();
+
+                cout << KDT->rootNode << endl;
+                cout << KDT->rootNode->getRoot() << endl;
+
+
+                KDT->rootNode->printTriangleCenters();
+                KDT->printTree();
+
+                KDT->split(30);
+
+                printf("\nreprinting after split\n");
+                KDT->printTree();
+
+
+                KDT->rootNode->printTriangleCenters();
+
+                cout << KDT << endl;
+
+
+                // write out data before quitting
+                char pathout[1024];
+                if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, pathout)))
+                {
+                    printf("path = %s\n", pathout);
+                }
+                strcat_s(pathout, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/dataout");
+                printf("path = %s\n", pathout);
+
+                KDT->writeKDtoFile(KDT->rootNode, pathout);
+
+
+                delete KDT;
+                //deleteTree(KD->getRoot());
+
+
+                _CrtDumpMemoryLeaks();
+                return 0;
+            }
+        }
+    }
+
 
     if (argc < 2) {
         printf("Usage: %s SCENEFILE.txt\n       %s SCENEFILE.txt SCENEFILE.obj\n", argv[0], argv[0]);
@@ -134,6 +226,8 @@ int main(int argc, char** argv) {
     mainLoop();
 
     //delete objmesh;
+
+    _CrtDumpMemoryLeaks();
 
     return 0;
 }

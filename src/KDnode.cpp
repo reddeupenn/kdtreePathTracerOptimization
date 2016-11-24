@@ -1,4 +1,4 @@
-//#include "stdafx.h"
+
 #include "KDnode.h"
 
 KDN::KDnode::KDnode()
@@ -29,6 +29,9 @@ KDN::KDnode::KDnode(Triangle* t, int axis)
 
 KDN::KDnode::KDnode(Triangle** t, int size, int axis)
 {
+    parent = NULL;
+    left = NULL;
+    right = NULL;
     // copy data pointers
     triangles.clear();
     triangles.resize(size);
