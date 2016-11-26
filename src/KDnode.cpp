@@ -187,16 +187,17 @@ void KDN::KDnode::split(int maxdepth)
                 left->ID = currentID;
                 left->parentID = this->ID;
                 this->leftID = currentID;
-
-                left->updateBbox();
                 left->parent = this;
-                left->split(maxdepth);
             }
-            else
-            {
-                left->updateBbox();
-                left->split(maxdepth);
-            }
+            //left->updateBbox();
+            // avoid overfitting
+            left->bbox.setBounds(bbox.mins[0], bbox.mins[1], bbox.mins[2],
+                                 bbox.maxs[0], bbox.maxs[1], bbox.maxs[2]);
+            left->bbox.maxs[level] = bbox.center[level];
+            left->bbox.updateCentroid();
+            left->bbox.updateSize();
+
+            left->split(maxdepth);
         }
 
         if (rightSide.size() != 0)
@@ -209,16 +210,18 @@ void KDN::KDnode::split(int maxdepth)
                 right->ID = currentID;
                 right->parentID = this->ID;
                 this->rightID = currentID;
-
-                right->updateBbox();
                 right->parent = this;
-                right->split(maxdepth);
+
             }
-            else
-            {
-                right->updateBbox();
-                right->split(maxdepth);
-            }
+            //right->updateBbox();
+            // avoid overfitting
+            right->bbox.setBounds(bbox.mins[0], bbox.mins[1], bbox.mins[2],
+                                  bbox.maxs[0], bbox.maxs[1], bbox.maxs[2]);
+            right->bbox.mins[level] = bbox.center[level];
+            right->bbox.updateCentroid();
+            right->bbox.updateSize();
+
+            right->split(maxdepth);
         }
 
         // split was successful so we remove the current triangles from the node
