@@ -202,11 +202,16 @@ namespace KDN
     {
     public:
         int axis;
+        bool visited;
         KDnode* parent;
         KDnode* left;
         KDnode* right;
         BoundingBox bbox;
         std::vector< Triangle* > triangles;
+        int ID;
+        int parentID;
+        int leftID;
+        int rightID;
 
         KDnode();
         KDnode(Triangle* t);

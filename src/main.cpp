@@ -278,17 +278,46 @@ void getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
-float intersectKDLoop(Ray r, KDN::KDnode* node, float mindist = FLT_MAX)
+void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    KDN::KDnode* currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == 0)
+        {
+            std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode);
+            currNode->visited = 1;
+        }
+        else
+            currNode = currNode->parent;
+    }
+}
+
+float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 {
     float dist = 0.0;
     bool hit = false;
-
 
     r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
     r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
     glm::normalize(r.direction);
 
-    hit = intersectAABB(r, node->bbox, dist);
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+
+    }
+
+
+    //hit = intersectAABB(r, node->bbox, dist);
 
     return dist;
 }
@@ -324,6 +353,7 @@ int main(int argc, char** argv) {
 
                 // read the file and save triangles into vector
                 std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
+                
 
                 // test kdtree class generator
                 //KDtree* KDT = new KDtree(path);
@@ -340,7 +370,7 @@ int main(int argc, char** argv) {
                 KDT->rootNode->printTriangleCenters();
                 KDT->printTree();
 
-                KDT->split(2);
+                KDT->split(1);
 
                 printf("\nreprinting after split\n");
                 KDT->printTree();
@@ -383,22 +413,46 @@ int main(int argc, char** argv) {
                 intersectKD(r, KDT->rootNode);
 
 
+
+
+                // Accessing kd nodes and triangles as a flat structure
+                // This is to help recursion removal for CUDA
+                // THANK YOU NVIDIA for this...
                 vector<KDN::KDnode*> nodes;
                 getKDnodes(KDT->rootNode, nodes);
+
+                vector<KDN::KDnode*> nodesLoop;
+                getKDnodesLoop(KDT->rootNode, nodesLoop);
 
                 for (int i = 0; i < nodes.size(); i++)
                 {
                     std::cout << "node: " << nodes[i] << " numtris: " << nodes[i]->triangles.size() << std::endl;
                 }
 
+                for (int i = 0; i < nodes.size(); i++)
+                {
+                    std::cout << "nodeLoop: " << nodes[i] 
+                              << " id: " << nodes[i]->ID 
+                              << " parent id: " << nodes[i]->parentID
+                              << " left id: " << nodes[i]->leftID
+                              << " right id: " << nodes[i]->rightID
+                              << " numtris: " << nodes[i]->triangles.size() 
+                              << std::endl;
+                }
 
+                printf("SIZEOF Triangle*: %d\n", sizeof(KDN::Triangle*));
+                printf("SIZEOF KDnode*: %d\n", sizeof(KDN::KDnode*));
+                printf("SIZEOF KDnode: %d\n", sizeof((nodes[0])[0]));
+                
+
+                /*
                 for (int i = 0; i < triangles.size(); i++)
                 {
                     printf("triangle: [%f %f %f]\n", triangles[i]->center[0]
                                                    , triangles[i]->center[1]
                                                    , triangles[i]->center[2]);
                 }
-
+                */
                 /*
                 float dist;
                 intersectAABB(r, KDT->rootNode->bbox, dist);

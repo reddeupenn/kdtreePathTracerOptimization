@@ -1,12 +1,19 @@
 
 #include "KDnode.h"
 
+static int currentID = 0;
+
 KDN::KDnode::KDnode()
 {
     parent = NULL;
     left = NULL;
     right = NULL;
     axis = 0;
+    visited = false;
+    ID = 0;
+    parentID = -1;
+    leftID = -1;
+    rightID = -1;
 }
 
 KDN::KDnode::KDnode(Triangle* t)
@@ -16,6 +23,11 @@ KDN::KDnode::KDnode(Triangle* t)
     right = NULL;
     triangles.push_back(t);
     axis = 0;
+    visited = false;
+    ID = 0;
+    parentID = -1;
+    leftID = -1;
+    rightID = -1;
 }
 
 KDN::KDnode::KDnode(Triangle* t, int axis)
@@ -25,6 +37,11 @@ KDN::KDnode::KDnode(Triangle* t, int axis)
     right = NULL;
     triangles.push_back(t);
     this->axis = axis;
+    visited = false;
+    ID = 0;
+    parentID = -1;
+    leftID = -1;
+    rightID = -1;
 }
 
 KDN::KDnode::KDnode(Triangle** t, int size, int axis)
@@ -37,6 +54,11 @@ KDN::KDnode::KDnode(Triangle** t, int size, int axis)
     triangles.resize(size);
     memcpy(triangles.data(), t, sizeof(Triangle*) * size);
     this->axis = axis;
+    visited = false;
+    ID = 0;
+    parentID = -1;
+    leftID = -1;
+    rightID = -1;
     updateBbox();
 }
 
@@ -154,11 +176,18 @@ void KDN::KDnode::split(int maxdepth)
         if (leftSide.size() == triangles.size() || rightSide.size() == triangles.size())
             return;
 
+        //int currentID = this->ID;
         if (leftSide.size() != 0)
         {
             if (left == NULL)
             {
                 left = new KDnode(leftSide.data(), leftSide.size(), (level + 1) % 3);
+                // update IDs
+                currentID++;
+                left->ID = currentID;
+                left->parentID = this->ID;
+                this->leftID = currentID;
+
                 left->updateBbox();
                 left->parent = this;
                 left->split(maxdepth);
@@ -175,6 +204,12 @@ void KDN::KDnode::split(int maxdepth)
             if (right == NULL)
             {
                 right = new KDnode(rightSide.data(), rightSide.size(), (level + 1) % 3);
+                // update IDs
+                currentID++;
+                right->ID = currentID;
+                right->parentID = this->ID;
+                this->rightID = currentID;
+
                 right->updateBbox();
                 right->parent = this;
                 right->split(maxdepth);
