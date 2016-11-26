@@ -42,6 +42,7 @@ namespace KDN
     class Triangle
     {
     public:
+        int nodeID;
         float x1, x2, x3,
             y1, y2, y3,
             z1, z2, z3;
@@ -60,6 +61,7 @@ namespace KDN
             center[1] = 0.0;
             center[2] = 0.0;
             computeBounds();
+            nodeID = -1;
         }
 
         Triangle(float X1, float Y1, float Z1,
@@ -72,6 +74,7 @@ namespace KDN
 
             computeCentroid();
             computeBounds();
+            nodeID = -1;
         }
 
         ~Triangle() {}

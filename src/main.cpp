@@ -231,9 +231,9 @@ float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
                                                         v3, v2, v1, barytemp);
 
                 //glm::vec3 bary(barytemp.x, barytemp.y, 1.0 - barytemp.x - barytemp.y);
-                printf("DIST %f ", dist);
-                printf("MINDIST %f ", mindist);
-                printf("INTERSECTED %d\n", intersected);
+                //printf("DIST %f ", dist);
+                //printf("MINDIST %f ", mindist);
+                //printf("INTERSECTED %d\n", intersected);
 
                 if (intersected && barytemp.z < mindist)
                 {
@@ -242,7 +242,10 @@ float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
                     //glm::vec3 pos = r.origin + r.direction * dist;
 
                     glm::vec3 intersect = r.origin + r.direction*dist;
-                    printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
+                    printf("LOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x, 
+                                                                               intersect.y, 
+                                                                               intersect.z, 
+                                                                               node->ID);
                 }
             }
         }
@@ -290,12 +293,29 @@ void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
             currNode = currNode->left;
         else if (currNode->right != NULL && currNode->right->visited != true)
             currNode = currNode->right;
-        else if (currNode->visited == 0)
+        else if (currNode->visited == false)
         {
             std::cout << "NODE LOOP: " << currNode << std::endl;
             nodes.push_back(currNode);
-            currNode->visited = 1;
+            currNode->visited = true;
         }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
         else
             currNode = currNode->parent;
     }
@@ -311,13 +331,70 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
     glm::normalize(r.direction);
 
 
-    for (int i = 0; i < nodes.size(); i++)
-    {
+    // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO -1 once they're visited
+    // instead of using visited to avoid conflicts when reading from
+    // multiple threads
+    bool* nodeIDs = new bool[nodes.size()];
+    memset(nodeIDs, 0, sizeof(bool)*nodes.size());
+    
 
+    if (nodes.size() == 0)
+        return dist;
+    else
+    {
+        float mindist = FLT_MAX;
+        int currID = nodeIDs[nodes[0]->ID];
+        while (true)
+        {
+            if (currID == -1)
+                break;
+
+            if (nodes[currID]->leftID != -1 && nodeIDs[nodes[currID]->leftID] != true)
+                currID = nodes[currID]->left->ID;
+            else if (nodes[currID]->rightID != -1 && nodeIDs[nodes[currID]->rightID] != true)
+                currID = nodes[currID]->right->ID;
+            else if (nodeIDs[nodes[currID]->ID] == false)
+            {
+                std::cout << "NODE LOOP: " << nodes[currID]->ID << std::endl;
+                nodeIDs[nodes[currID]->ID] = true;
+
+                int numtris = nodes[currID]->triangles.size();
+                if (numtris != 0)
+                {
+                    for (int i = 0; i < numtris; i++)
+                    {
+                        KDN::Triangle* t = nodes[currID]->triangles[i];
+
+                        glm::vec3 v1(t->x1, t->y1, t->z1);
+                        glm::vec3 v2(t->x2, t->y2, t->z2);
+                        glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                        glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                        bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                     r.direction,
+                                                                     v3, v2, v1, barytemp);
+                        if (intersected && barytemp.z < mindist)
+                        {
+                            dist = barytemp.z;
+                            mindist = dist;
+                            //glm::vec3 pos = r.origin + r.direction * dist;
+
+                            glm::vec3 intersect = r.origin + r.direction*dist;
+                            printf("LOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x, 
+                                                                                       intersect.y, 
+                                                                                       intersect.z, 
+                                                                                       currID);
+                        }
+                    }
+                }
+            }
+            else
+                currID = nodes[currID]->parentID;
+        }
     }
 
 
-    //hit = intersectAABB(r, node->bbox, dist);
+    delete[] nodeIDs;
 
     return dist;
 }
@@ -370,7 +447,7 @@ int main(int argc, char** argv) {
                 KDT->rootNode->printTriangleCenters();
                 KDT->printTree();
 
-                KDT->split(1);
+                KDT->split(2);
 
                 printf("\nreprinting after split\n");
                 KDT->printTree();
@@ -394,25 +471,7 @@ int main(int argc, char** argv) {
 
 
 
-                // test collisions
-                // SPHERE INTERSECTION TEST
-                // INITIAL POSITION AND NORMAL:
-                // POS:  2.0  2.0  2.0
-                // NOR: -0.5 -0.5 -0.707
-                // HIT POSITION:
-                // POS: 0.695252 0.695252 0.154808
-
-
-
-                Ray r;
-                r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
-                r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
-                glm::normalize(r.direction);
-
-
-                intersectKD(r, KDT->rootNode);
-
-
+                              
 
 
                 // Accessing kd nodes and triangles as a flat structure
@@ -424,10 +483,34 @@ int main(int argc, char** argv) {
                 vector<KDN::KDnode*> nodesLoop;
                 getKDnodesLoop(KDT->rootNode, nodesLoop);
 
+                // ------------------------------------------------------------
+                // IMPORTANT:  This is the flattening part of the triangle data
+                // ------------------------------------------------------------
+                // print and get the new triangle count needed to pass to the functions
+                int triCount = 0;
+                vector<int> offsets;
+                vector<KDN::Triangle> newTriangles;
                 for (int i = 0; i < nodes.size(); i++)
                 {
-                    std::cout << "node: " << nodes[i] << " numtris: " << nodes[i]->triangles.size() << std::endl;
+                    int numTriangles = nodes[i]->triangles.size();
+                    if (numTriangles > 0)
+                    {
+                        triCount += numTriangles;
+                        offsets.push_back(triCount);
+
+                        for (int j = 0; j < numTriangles; j++)
+                        {
+                            newTriangles.push_back(nodes[i]->triangles[j][0]);
+                        }
+                    }
+
+                    std::cout << "node: " << nodes[i] << " numtris: " << numTriangles << std::endl;
                 }
+
+
+
+
+
 
                 for (int i = 0; i < nodes.size(); i++)
                 {
@@ -445,6 +528,31 @@ int main(int argc, char** argv) {
                 printf("SIZEOF KDnode: %d\n", sizeof((nodes[0])[0]));
                 
 
+
+                // TEST OFFSETS AND TRIANGLE DATA
+                for (int i = 0; i < offsets.size(); i++)
+                {
+                    if (i == 0)
+                    {
+                        for (int j = 0; j < offsets[i]; j++)
+                            printf("TRIANGLE CENTER: [%f %f %f]\n", newTriangles[j].center[0], 
+                                                                    newTriangles[j].center[1],
+                                                                    newTriangles[j].center[2]);
+                    }
+                    else
+                    {
+                        for (int j = offsets[i-1]; j < offsets[i]; j++)
+                        {
+                            printf("TRIANGLE CENTER: [%f %f %f]\n", newTriangles[j].center[0],
+                                                                    newTriangles[j].center[1],
+                                                                    newTriangles[j].center[2]);
+                        }
+                    }
+                }
+
+                printf("NUM NEW TRIANGLES: %d\n", offsets[offsets.size()-1]);
+
+
                 /*
                 for (int i = 0; i < triangles.size(); i++)
                 {
@@ -460,6 +568,28 @@ int main(int argc, char** argv) {
                 glm::vec3 intersect = r.origin + r.direction*dist;
                 printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
                 */
+
+
+
+
+                // test collisions
+                // SPHERE INTERSECTION TEST
+                // INITIAL POSITION AND NORMAL:
+                // POS:  2.0  2.0  2.0
+                // NOR: -0.5 -0.5 -0.707
+                // HIT POSITION:
+                // POS: 0.695252 0.695252 0.154808
+                Ray r;
+                r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+                r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+                glm::normalize(r.direction);
+
+
+                intersectKD(r, KDT->rootNode);
+
+                intersectKDLoop(r, nodes);
+
+
 
                 delete KDT;
                 //deleteTree(KD->getRoot());
