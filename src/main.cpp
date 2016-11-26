@@ -24,6 +24,8 @@
 #include "KDnode.h"
 #include "KDtree.h"
 
+#include <glm/gtx/intersect.hpp>
+
 static std::string startTimeString;
 
 // For camera controls
@@ -78,6 +80,220 @@ void saxpy_fast2(float A, thrust::device_vector<float>& X, thrust::device_vector
 
 */
 
+// this are for testing purposes only
+glm::vec3 multiplyVmat(glm::mat4 m, glm::vec4 v) {
+    return glm::vec3(m * v);
+}
+// this is for testing purposes only
+glm::vec3 getRayPoint(Ray r, float t) {
+    return r.origin + (t - .0001f) * glm::normalize(r.direction);
+}
+// interection test for development
+float intersectBox(Geom box, Ray r,
+                   glm::vec3 &intersectionPoint, glm::vec3 &normal, bool &outside) {
+    Ray q;
+    q.origin = multiplyVmat(box.inverseTransform, glm::vec4(r.origin, 1.0f));
+    q.direction = glm::normalize(multiplyVmat(box.inverseTransform, glm::vec4(r.direction, 0.0f)));
+
+    float tmin = -1e38f;
+    float tmax = 1e38f;
+    glm::vec3 tmin_n;
+    glm::vec3 tmax_n;
+    for (int xyz = 0; xyz < 3; ++xyz) {
+        float qdxyz = q.direction[xyz];
+        /*if (glm::abs(qdxyz) > 0.00001f)*/ {
+            float t1 = (-0.5f - q.origin[xyz]) / qdxyz;
+            float t2 = (+0.5f - q.origin[xyz]) / qdxyz;
+            float ta = min(t1, t2);
+            float tb = max(t1, t2);
+            glm::vec3 n;
+            n[xyz] = t2 < t1 ? +1 : -1;
+            if (ta > 0 && ta > tmin) {
+                tmin = ta;
+                tmin_n = n;
+            }
+            if (tb < tmax) {
+                tmax = tb;
+                tmax_n = n;
+            }
+        }
+    }
+
+    if (tmax >= tmin && tmax > 0) {
+        outside = true;
+        if (tmin <= 0) {
+            tmin = tmax;
+            tmin_n = tmax_n;
+            outside = false;
+        }
+        intersectionPoint = multiplyVmat(box.transform, glm::vec4(getRayPoint(q, tmin), 1.0f));
+        normal = glm::normalize(multiplyVmat(box.transform, glm::vec4(tmin_n, 0.0f)));
+        return glm::length(r.origin - intersectionPoint);
+    }
+    return -1;
+}
+
+std::vector<KDN::Triangle*> getTrianglesFromFile(const char* path)
+{
+    std::vector<KDN::Triangle*>triangles;
+
+    string line;
+    ifstream file(path);
+
+    if (file.is_open())
+    {
+        int iter = 0;
+        while (getline(file, line))
+        {
+            float x1 = atof(line.c_str());
+            getline(file, line); float y1 = atof(line.c_str());
+            getline(file, line); float z1 = atof(line.c_str());
+            getline(file, line); float x2 = atof(line.c_str());
+            getline(file, line); float y2 = atof(line.c_str());
+            getline(file, line); float z2 = atof(line.c_str());
+            getline(file, line); float x3 = atof(line.c_str());
+            getline(file, line); float y3 = atof(line.c_str());
+            getline(file, line); float z3 = atof(line.c_str());
+
+            KDN::Triangle* t = new KDN::Triangle(x1, y1, z1,
+                                                 x2, y2, z2,
+                                                 x3, y3, z3);
+            triangles.push_back(t);
+        }
+    }
+    return triangles;
+}
+
+
+// fast AABB intersection
+bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
+{
+
+    glm::vec3 invdir(1.0f / r.direction.x,
+                      1.0f / r.direction.y,
+                      1.0f / r.direction.z);
+
+    float v1 = (b.mins[0] - r.origin.x)*invdir.x;
+    float v2 = (b.maxs[0] - r.origin.x)*invdir.x;
+    float v3 = (b.mins[1] - r.origin.y)*invdir.y;
+    float v4 = (b.maxs[1] - r.origin.y)*invdir.y;
+    float v5 = (b.mins[2] - r.origin.z)*invdir.z;
+    float v6 = (b.maxs[2] - r.origin.z)*invdir.z;
+
+    float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
+    float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
+
+    if (dmax < 0)
+    {
+        dist = dmax;
+        return false;
+    }
+
+    if (dmin > dmax)
+    {
+        dist = dmax;
+        return false;
+    }
+
+    dist = dmin;
+
+    return true;
+}
+
+
+float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
+{
+    r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+    r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+    glm::normalize(r.direction);
+
+    float dist;
+    bool hit = intersectAABB(r, node->bbox, dist);
+
+    if (hit)
+    {
+        dist = 0.0;
+        // intersect triangles if node is leaf
+        int numtris = node->triangles.size();
+        if ( numtris != 0)
+        {
+            for (int i = 0; i < numtris; i++)
+            {
+                KDN::Triangle* t = node->triangles[i];
+
+                glm::vec3 v1(t->x1, t->y1, t->z1);
+                glm::vec3 v2(t->x2, t->y2, t->z2);
+                glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                bool intersected = glm::intersectRayTriangle(r.origin,
+                                                        r.direction,
+                                                        v3, v2, v1, barytemp);
+
+                //glm::vec3 bary(barytemp.x, barytemp.y, 1.0 - barytemp.x - barytemp.y);
+                printf("DIST %f ", dist);
+                printf("MINDIST %f ", mindist);
+                printf("INTERSECTED %d\n", intersected);
+
+                if (intersected && barytemp.z < mindist)
+                {
+                    dist = barytemp.z;
+                    mindist = dist;
+                    //glm::vec3 pos = r.origin + r.direction * dist;
+
+                    glm::vec3 intersect = r.origin + r.direction*dist;
+                    printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
+                }
+            }
+        }
+
+        /*
+        if (dist < mindist || mindist == -1)
+        {
+            mindist = dist;
+
+            glm::vec3 intersect = r.origin + r.direction*dist;
+            printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
+        }
+        */
+
+        if (node->left)
+            intersectKD(r, node->left, mindist);
+
+        if (node->right)
+            intersectKD(r, node->right, mindist);
+    }
+
+    return dist;
+}
+
+
+void getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    if (root != NULL)
+    {
+        nodes.push_back(root);
+        getKDnodes(root->left, nodes);
+        getKDnodes(root->right, nodes);
+    }
+}
+
+float intersectKDLoop(Ray r, KDN::KDnode* node, float mindist = FLT_MAX)
+{
+    float dist = 0.0;
+    bool hit = false;
+
+
+    r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+    r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+    glm::normalize(r.direction);
+
+    hit = intersectAABB(r, node->bbox, dist);
+
+    return dist;
+}
+
+
 //-------------------------------
 //-------------MAIN--------------
 //-------------------------------
@@ -106,10 +322,12 @@ int main(int argc, char** argv) {
                 strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
                 printf("path = %s\n", path);
 
-                //std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
+                // read the file and save triangles into vector
+                std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
 
                 // test kdtree class generator
-                KDtree* KDT = new KDtree(path);
+                //KDtree* KDT = new KDtree(path);
+                KDtree* KDT = new KDtree(triangles);
                 KDT->rootNode->updateBbox();
 
 
@@ -122,12 +340,12 @@ int main(int argc, char** argv) {
                 KDT->rootNode->printTriangleCenters();
                 KDT->printTree();
 
-                KDT->split(30);
+                KDT->split(2);
 
                 printf("\nreprinting after split\n");
                 KDT->printTree();
 
-
+                                
                 KDT->rootNode->printTriangleCenters();
 
                 cout << KDT << endl;
@@ -144,6 +362,50 @@ int main(int argc, char** argv) {
 
                 KDT->writeKDtoFile(KDT->rootNode, pathout);
 
+
+
+                // test collisions
+                // SPHERE INTERSECTION TEST
+                // INITIAL POSITION AND NORMAL:
+                // POS:  2.0  2.0  2.0
+                // NOR: -0.5 -0.5 -0.707
+                // HIT POSITION:
+                // POS: 0.695252 0.695252 0.154808
+
+
+
+                Ray r;
+                r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+                r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+                glm::normalize(r.direction);
+
+
+                intersectKD(r, KDT->rootNode);
+
+
+                vector<KDN::KDnode*> nodes;
+                getKDnodes(KDT->rootNode, nodes);
+
+                for (int i = 0; i < nodes.size(); i++)
+                {
+                    std::cout << "node: " << nodes[i] << " numtris: " << nodes[i]->triangles.size() << std::endl;
+                }
+
+
+                for (int i = 0; i < triangles.size(); i++)
+                {
+                    printf("triangle: [%f %f %f]\n", triangles[i]->center[0]
+                                                   , triangles[i]->center[1]
+                                                   , triangles[i]->center[2]);
+                }
+
+                /*
+                float dist;
+                intersectAABB(r, KDT->rootNode->bbox, dist);
+
+                glm::vec3 intersect = r.origin + r.direction*dist;
+                printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
+                */
 
                 delete KDT;
                 //deleteTree(KD->getRoot());

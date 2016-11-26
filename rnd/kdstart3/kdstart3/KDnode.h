@@ -1,9 +1,7 @@
 #pragma once
 
-#include "stdafx.h"
+
 #include <vector>
-
-
 
 namespace KDN
 {
@@ -117,7 +115,6 @@ namespace KDN
             maxs[1] = y1 > y2 ? (y1 > y3 ? y1 : y3) : (y2 > y3 ? y2 : y3);
             maxs[2] = z1 > z2 ? (z1 > z3 ? z1 : z3) : (z2 > z3 ? z2 : z3);
         }
-
     };
 
     // bounding box class for creating bounds and setting node bounds
@@ -127,7 +124,8 @@ namespace KDN
         float mins[3];
         float maxs[3];
         //float centerx, centery, centerz;
-        float center[3]{};
+        float center[3];
+        float size[3];
 
         BoundingBox()
         {
@@ -140,6 +138,7 @@ namespace KDN
             setBounds(mins[0], mins[1], mins[2],
                       maxs[0], maxs[1], maxs[2]);
             updateCentroid();
+            updateSize();
 
         }
 
@@ -147,6 +146,7 @@ namespace KDN
         {
             setBounds(t);
             updateCentroid();
+            updateSize();
         }
 
         void setBounds(Triangle* t)
@@ -159,6 +159,7 @@ namespace KDN
             maxs[1] = t->y1 > t->y2 ? (t->y1 > t->y3 ? t->y1 : t->y3) : (t->y2 > t->y3 ? t->y2 : t->y3);
             maxs[2] = t->z1 > t->z2 ? (t->z1 > t->z3 ? t->z1 : t->z3) : (t->z2 > t->z3 ? t->z2 : t->z3);
             updateCentroid();
+            updateSize();
         }
 
         void updateCentroid()
@@ -166,6 +167,7 @@ namespace KDN
             center[0] = (mins[0] + maxs[0]) / 2.0;
             center[1] = (mins[1] + maxs[1]) / 2.0;
             center[2] = (mins[2] + maxs[2]) / 2.0;
+            updateSize();
         }
 
         void setBounds(float xMin, float yMin, float zMin,
@@ -174,6 +176,14 @@ namespace KDN
             mins[0] = xMin; mins[1] = yMin; mins[2] = zMin;
             maxs[0] = xMax; maxs[1] = yMax; maxs[2] = zMax;
             updateCentroid();
+
+        }
+
+        void updateSize()
+        {
+            size[0] = mins[0] < maxs[0] ? maxs[0] - mins[0] : mins[0] - maxs[0];
+            size[1] = mins[1] < maxs[1] ? maxs[1] - mins[1] : mins[1] - maxs[1];
+            size[2] = mins[2] < maxs[2] ? maxs[2] - mins[2] : mins[2] - maxs[2];
         }
 
         void setBounds(float val)
@@ -181,6 +191,7 @@ namespace KDN
             mins[0] = val; mins[1] = val; mins[2] = val;
             maxs[0] = val; maxs[1] = val; maxs[2] = val;
             center[0] = val; center[1] = val; center[2] = val;
+            size[0] = 0.0; size[1] = 0.0; size[2] = 0.0;
             // centery = val; centerz = val;
         }
     };
