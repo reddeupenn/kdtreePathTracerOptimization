@@ -81,58 +81,6 @@ void saxpy_fast2(float A, thrust::device_vector<float>& X, thrust::device_vector
 
 */
 
-// this are for testing purposes only
-glm::vec3 multiplyVmat(glm::mat4 m, glm::vec4 v) {
-    return glm::vec3(m * v);
-}
-// this is for testing purposes only
-glm::vec3 getRayPoint(Ray r, float t) {
-    return r.origin + (t - .0001f) * glm::normalize(r.direction);
-}
-// interection test for development
-float intersectBox(Geom box, Ray r,
-                   glm::vec3 &intersectionPoint, glm::vec3 &normal, bool &outside) {
-    Ray q;
-    q.origin = multiplyVmat(box.inverseTransform, glm::vec4(r.origin, 1.0f));
-    q.direction = glm::normalize(multiplyVmat(box.inverseTransform, glm::vec4(r.direction, 0.0f)));
-
-    float tmin = -1e38f;
-    float tmax = 1e38f;
-    glm::vec3 tmin_n;
-    glm::vec3 tmax_n;
-    for (int xyz = 0; xyz < 3; ++xyz) {
-        float qdxyz = q.direction[xyz];
-        /*if (glm::abs(qdxyz) > 0.00001f)*/ {
-            float t1 = (-0.5f - q.origin[xyz]) / qdxyz;
-            float t2 = (+0.5f - q.origin[xyz]) / qdxyz;
-            float ta = min(t1, t2);
-            float tb = max(t1, t2);
-            glm::vec3 n;
-            n[xyz] = t2 < t1 ? +1 : -1;
-            if (ta > 0 && ta > tmin) {
-                tmin = ta;
-                tmin_n = n;
-            }
-            if (tb < tmax) {
-                tmax = tb;
-                tmax_n = n;
-            }
-        }
-    }
-
-    if (tmax >= tmin && tmax > 0) {
-        outside = true;
-        if (tmin <= 0) {
-            tmin = tmax;
-            tmin_n = tmax_n;
-            outside = false;
-        }
-        intersectionPoint = multiplyVmat(box.transform, glm::vec4(getRayPoint(q, tmin), 1.0f));
-        normal = glm::normalize(multiplyVmat(box.transform, glm::vec4(tmin_n, 0.0f)));
-        return glm::length(r.origin - intersectionPoint);
-    }
-    return -1;
-}
 
 std::vector<KDN::Triangle*> getTrianglesFromFile(const char* path)
 {
@@ -183,7 +131,18 @@ bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
 
     float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
     float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
-
+    /*
+    if (dmin < 0 || dmax > dmin)
+    {
+        dist = -1;
+        return false;
+    }
+    else
+    {
+        dist = dmax;
+        return true;
+    }
+    */
     if (dmax < 0)
     {
         dist = dmax;
@@ -195,6 +154,7 @@ bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
         dist = dmax;
         return false;
     }
+    
 
     dist = dmin;
 
@@ -250,16 +210,6 @@ float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
                 }
             }
         }
-
-        /*
-        if (dist < mindist || mindist == -1)
-        {
-            mindist = dist;
-
-            glm::vec3 intersect = r.origin + r.direction*dist;
-            printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
-        }
-        */
 
         if (node->left)
             intersectKD(r, node->left, mindist);
@@ -368,13 +318,8 @@ void getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
 
 float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 {
-    float dist = 0.0;
+    float dist = -1.0;
     bool hit = false;
-
-    //r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
-    //r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
-    //glm::normalize(r.direction);
-
 
     // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO 1 once they're visited
     // instead of using visited to avoid conflicts when reading from
@@ -390,65 +335,85 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
         float mindist = FLT_MAX;
         int currID = nodeIDs[nodes[0]->ID];
 
+        // get the root node
+        for (int i = 0; i < nodes.size(); i++)
+        {
+            if (nodes[i]->parentID == -1)
+            {
+                currID = nodes[i]->ID;
+                break;
+            }
+        }
+
         //for (int i = 0; i < nodes.size(); i++)
         //    printf("NODE: %d parent: %d left: %d right: %d\n", nodes[i]->ID,
         //                                                       nodes[i]->parentID,
         //                                                       nodes[i]->leftID,
         //                                                       nodes[i]->rightID);
 
+        float boxdist = -1.0;
         while (true)
         {
-
             if (currID == -1)
                 break;
 
-            //for (int i = 0; i < nodes.size(); i++)
-            //    printf("%d ", nodeIDs[i]);
-            //printf("\n");
-
-            if (nodes[currID]->leftID != -1 && nodeIDs[nodes[currID]->leftID] != true)
-                currID = nodes[currID]->leftID;
-            else if (nodes[currID]->rightID != -1 && nodeIDs[nodes[currID]->rightID] != true)
-                currID = nodes[currID]->rightID;
-            else if (nodeIDs[nodes[currID]->ID] == false)
+            for (int i = 0; i < nodes.size(); i++)
+                printf("%d ", nodeIDs[i]);
+            printf("\n");
+            
+            // check if it intersects the bounds
+            if (intersectAABB(r, nodes[currID]->bbox, boxdist) == false)
             {
-                //std::cout << "NODE LOOP: " << nodes[currID]->ID << std::endl;
                 nodeIDs[nodes[currID]->ID] = true;
-
-                
-                int numtris = nodes[currID]->triangles.size();
-                if (numtris != 0)
-                {
-                    for (int i = 0; i < numtris; i++)
-                    {
-                        KDN::Triangle* t = nodes[currID]->triangles[i];
-
-                        glm::vec3 v1(t->x1, t->y1, t->z1);
-                        glm::vec3 v2(t->x2, t->y2, t->z2);
-                        glm::vec3 v3(t->x3, t->y3, t->z3);
-
-                        glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
-                        bool intersected = glm::intersectRayTriangle(r.origin,
-                                                                     r.direction,
-                                                                     v3, v2, v1, barytemp);
-                        if (intersected && barytemp.z < mindist)
-                        {
-                            dist = barytemp.z;
-                            mindist = dist;
-                            //glm::vec3 pos = r.origin + r.direction * dist;
-
-                            glm::vec3 intersect = r.origin + r.direction*dist;
-                            printf("LOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x, 
-                                                                                       intersect.y, 
-                                                                                       intersect.z, 
-                                                                                       currID);
-                        }
-                    }
-                }
-                
+                currID = nodes[currID]->parentID;
             }
             else
-                currID = nodes[currID]->parentID;
+            {
+
+                if (nodes[currID]->leftID != -1 && nodeIDs[nodes[currID]->leftID] != true)
+                    currID = nodes[currID]->leftID;
+                else if (nodes[currID]->rightID != -1 && nodeIDs[nodes[currID]->rightID] != true)
+                    currID = nodes[currID]->rightID;
+                else if (nodeIDs[nodes[currID]->ID] == false)
+                {
+                    std::cout << "NODE LOOP: " << nodes[currID]->ID << std::endl;
+                    nodeIDs[nodes[currID]->ID] = true;
+
+
+                    int numtris = nodes[currID]->triangles.size();
+                    if (numtris != 0)
+                    {
+                        for (int i = 0; i < numtris; i++)
+                        {
+                            KDN::Triangle* t = nodes[currID]->triangles[i];
+
+                            glm::vec3 v1(t->x1, t->y1, t->z1);
+                            glm::vec3 v2(t->x2, t->y2, t->z2);
+                            glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                            glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                            bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                         r.direction,
+                                                                         v3, v2, v1, barytemp);
+                            if (intersected && barytemp.z < mindist)
+                            {
+                                dist = barytemp.z;
+                                mindist = dist;
+                                //glm::vec3 pos = r.origin + r.direction * dist;
+
+                                glm::vec3 intersect = r.origin + r.direction*dist;
+                                printf("KDLOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
+                                       intersect.y,
+                                       intersect.z,
+                                       currID);
+                            }
+                        }
+                    }
+
+                }
+                else
+                    currID = nodes[currID]->parentID;
+            }
         }
     }
 
@@ -461,12 +426,8 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 // loop version of copies tree traversal
 float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
 {
-    float dist = 0.0;
+    float dist = -1.0;
     bool hit = false;
-
-    //r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
-    //r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
-    //glm::normalize(r.direction);
 
 
     // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO 1 once they're visited
@@ -499,10 +460,9 @@ float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
             }
         }
 
-
+        float boxdist = -1.0;
         while (true)
         {
-
             if (currID == -1)
                 break;
 
@@ -511,50 +471,58 @@ float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
             //    printf("%d ", nodeIDs[i]);
             //printf("\n");
 
-            if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
-                currID = nodes[currID].leftID;
-            else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
-                currID = nodes[currID].rightID;
-            else if (nodeIDs[nodes[currID].ID] == false)
+            // check if it intersects the bounds
+            if (intersectAABB(r, nodes[currID].bbox, boxdist) == false)
             {
-                //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID << std::endl;
                 nodeIDs[nodes[currID].ID] = true;
-
-                
-                int numtris = nodes[currID].triangles.size();
-                if (numtris != 0)
-                {
-                    for (int i = 0; i < numtris; i++)
-                    {
-                        KDN::Triangle* t = nodes[currID].triangles[i];
-
-                        glm::vec3 v1(t->x1, t->y1, t->z1);
-                        glm::vec3 v2(t->x2, t->y2, t->z2);
-                        glm::vec3 v3(t->x3, t->y3, t->z3);
-
-                        glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
-                        bool intersected = glm::intersectRayTriangle(r.origin,
-                                                                     r.direction,
-                                                                     v3, v2, v1, barytemp);
-                        if (intersected && barytemp.z < mindist)
-                        {
-                            dist = barytemp.z;
-                            mindist = dist;
-                            //glm::vec3 pos = r.origin + r.direction * dist;
-
-                            glm::vec3 intersect = r.origin + r.direction*dist;
-                            printf("LOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
-                                   intersect.y,
-                                   intersect.z,
-                                   currID);
-                        }
-                    }
-                }
-                
+                currID = nodes[currID].parentID;
             }
             else
-                currID = nodes[currID].parentID;
+            {
+                if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                    currID = nodes[currID].leftID;
+                else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                    currID = nodes[currID].rightID;
+                else if (nodeIDs[nodes[currID].ID] == false)
+                {
+                    //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID << std::endl;
+                    nodeIDs[nodes[currID].ID] = true;
 
+
+                    int numtris = nodes[currID].triangles.size();
+                    if (numtris != 0)
+                    {
+                        for (int i = 0; i < numtris; i++)
+                        {
+                            KDN::Triangle* t = nodes[currID].triangles[i];
+
+                            glm::vec3 v1(t->x1, t->y1, t->z1);
+                            glm::vec3 v2(t->x2, t->y2, t->z2);
+                            glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                            glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                            bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                         r.direction,
+                                                                         v3, v2, v1, barytemp);
+                            if (intersected && barytemp.z < mindist)
+                            {
+                                dist = barytemp.z;
+                                mindist = dist;
+                                //glm::vec3 pos = r.origin + r.direction * dist;
+
+                                glm::vec3 intersect = r.origin + r.direction*dist;
+                                printf("KDLOOPPTR INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
+                                       intersect.y,
+                                       intersect.z,
+                                       currID);
+                            }
+                        }
+                    }
+
+                }
+                else
+                    currID = nodes[currID].parentID;
+            }
             //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID 
             //          << " LEFT: " << nodes[currID].leftID
             //          << " RIGHT: " << nodes[currID].rightID
@@ -748,7 +716,7 @@ int main(int argc, char** argv) {
                 KDT->rootNode->printTriangleCenters();
                 KDT->printTree();
 
-                KDT->split(2);
+                KDT->split(3);
 
                 printf("\nreprinting after split\n");
                 KDT->printTree();
