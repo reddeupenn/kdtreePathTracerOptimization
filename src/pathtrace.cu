@@ -17,6 +17,22 @@
 #include "intersections.h"
 #include "interactions.h"
 
+#include <algorithm>
+#include <stdlib.h>
+#include <crtdbg.h>
+
+#include <random>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <Shlobj.h>
+
+#include <glm/gtx/intersect.hpp>
+
+#include "KDnode.h"
+#include "KDtree.h"
 
 #define ERRORCHECK 1
 

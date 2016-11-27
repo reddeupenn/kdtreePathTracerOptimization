@@ -424,7 +424,7 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 }
 
 // loop version of copies tree traversal
-float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
+float intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangle* triangles, int numTriangles)
 {
     float dist = -1.0;
     bool hit = false;
@@ -488,7 +488,7 @@ float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
                     //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID << std::endl;
                     nodeIDs[nodes[currID].ID] = true;
 
-
+                    /*
                     int numtris = nodes[currID].triangles.size();
                     if (numtris != 0)
                     {
@@ -499,6 +499,38 @@ float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
                             glm::vec3 v1(t->x1, t->y1, t->z1);
                             glm::vec3 v2(t->x2, t->y2, t->z2);
                             glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                            glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                            bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                         r.direction,
+                                                                         v3, v2, v1, barytemp);
+                            if (intersected && barytemp.z < mindist)
+                            {
+                                dist = barytemp.z;
+                                mindist = dist;
+                                //glm::vec3 pos = r.origin + r.direction * dist;
+
+                                glm::vec3 intersect = r.origin + r.direction*dist;
+                                printf("KDLOOPPTR INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
+                                       intersect.y,
+                                       intersect.z,
+                                       currID);
+                            }
+                        }
+                    }
+                    */
+                    int size = nodes[currID].triIdSize;
+                    if (size > 0)
+                    {
+                        int start = nodes[currID].triIdStart;
+                        int end = start + size;
+                        for (int i = start; i < end; i++)
+                        {
+                            KDN::Triangle t = triangles[i];
+
+                            glm::vec3 v1(t.x1, t.y1, t.z1);
+                            glm::vec3 v2(t.x2, t.y2, t.z2);
+                            glm::vec3 v3(t.x3, t.y3, t.z3);
 
                             glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
                             bool intersected = glm::intersectRayTriangle(r.origin,
@@ -932,7 +964,7 @@ int main(int argc, char** argv) {
 
 
                 //printf("numnodes = %d %d %d\n", numNodes, nodesLoopDeref.size(), nodesLoop.size());
-                intersectKDLoopPtr(r, nodesPtr, numNodes);
+                intersectKDLoopDeref(r, nodesPtr, numNodes, newTriangles.data(), newTriangles.size());
 
                 //delete[] nodesPtr;
 
