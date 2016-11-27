@@ -96,7 +96,7 @@ static PathSegment * dev_paths_cache = NULL;
 static ShadeableIntersection * dev_intersections = NULL;
 // TODO: static variables for device memory, any extra info you need, etc
 // ...
-static int iter2 = 0;
+//static int iter2 = 0;
 
 struct is_zero_bounce
 {
@@ -213,6 +213,448 @@ void pathtraceInit(Scene *scene) {
  
     checkCUDAError("pathtraceInit");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// ------------------------------------------------------------------------
+// --------------------------- KD TREE UTILITIES --------------------------
+// ------------------------------------------------------------------------
+
+std::vector<KDN::Triangle*> getTrianglesFromFile(const char* path)
+{
+    std::vector<KDN::Triangle*>triangles;
+
+    string line;
+    ifstream file(path);
+
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
+            float x1 = atof(line.c_str());
+            getline(file, line); float y1 = atof(line.c_str());
+            getline(file, line); float z1 = atof(line.c_str());
+            getline(file, line); float x2 = atof(line.c_str());
+            getline(file, line); float y2 = atof(line.c_str());
+            getline(file, line); float z2 = atof(line.c_str());
+            getline(file, line); float x3 = atof(line.c_str());
+            getline(file, line); float y3 = atof(line.c_str());
+            getline(file, line); float z3 = atof(line.c_str());
+
+            KDN::Triangle* t = new KDN::Triangle(x1, y1, z1,
+                                                 x2, y2, z2,
+                                                 x3, y3, z3);
+            triangles.push_back(t);
+        }
+    }
+    return triangles;
+}
+
+
+// fast AABB intersection
+//__global__
+void intersectAABB(Ray r, KDN::BoundingBox b, float& dist, bool& result)
+{
+
+    glm::vec3 invdir(1.0f / r.direction.x,
+                     1.0f / r.direction.y,
+                     1.0f / r.direction.z);
+
+    float v1 = (b.mins[0] - r.origin.x)*invdir.x;
+    float v2 = (b.maxs[0] - r.origin.x)*invdir.x;
+    float v3 = (b.mins[1] - r.origin.y)*invdir.y;
+    float v4 = (b.maxs[1] - r.origin.y)*invdir.y;
+    float v5 = (b.mins[2] - r.origin.z)*invdir.z;
+    float v6 = (b.maxs[2] - r.origin.z)*invdir.z;
+
+    float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
+    float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
+    /*
+    if (dmin < 0 || dmax > dmin)
+    {
+        dist = -1;
+        return false;
+    }
+    else
+    {
+        dist = dmax;
+        return true;
+    }
+    */
+    if (dmax < 0)
+    {
+        dist = dmax;
+        result = false;
+        return;
+    }
+    if (dmin > dmax)
+    {
+        dist = dmax;
+        result = false;
+        return;
+    }
+    dist = dmin;
+    result = true;
+    return;
+}
+
+void getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    if (root != NULL)
+    {
+        nodes.push_back(root);
+        getKDnodes(root->left, nodes);
+        getKDnodes(root->right, nodes);
+    }
+}
+
+void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    KDN::KDnode* currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == false)
+        {
+            std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode);
+            currNode->visited = true;
+        }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
+        else
+            currNode = currNode->parent;
+    }
+}
+
+
+void getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
+{
+    KDN::KDnode* currNode = root;
+
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == false)
+        {
+            std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode[0]);
+            currNode->visited = true;
+        }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
+        else
+            currNode = currNode->parent;
+    }
+}
+
+
+// loop version of copies tree traversal
+__host__ __device__ //__global__
+void intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangle* triangles, int numTriangles, float dist)
+{
+    dist = -1.0;
+    bool hit = false;
+
+    // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO 1 once they're visited
+    // instead of using visited to avoid conflicts when reading from
+    // multiple threads
+    bool* nodeIDs = new bool[numNodes];
+    memset(nodeIDs, 0, sizeof(bool)*numNodes);
+
+
+    if (numNodes == 0)
+        return;
+    else
+    {
+        float mindist = FLT_MAX;
+        int currID = nodeIDs[nodes[0].ID];
+
+        // get the root node
+        for (int i = 0; i < numNodes; i++)
+        {
+            if (nodes[i].parentID == -1)
+            {
+                currID = nodes[i].ID;
+                break;
+            }
+        }
+
+        float boxdist = -1.0;
+        while (true)
+        {
+            if (currID == -1)
+                break;
+
+            // check if it intersects the bounds
+            bool hit;
+            intersectAABB(r, nodes[currID].bbox, dist, hit);
+            if (hit == false)
+            {
+                nodeIDs[nodes[currID].ID] = true;
+                currID = nodes[currID].parentID;
+            }
+            else
+            {
+                if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                    currID = nodes[currID].leftID;
+                else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                    currID = nodes[currID].rightID;
+                else if (nodeIDs[nodes[currID].ID] == false)
+                {
+                    //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID << std::endl;
+                    nodeIDs[nodes[currID].ID] = true;
+
+                    int size = nodes[currID].triIdSize;
+                    if (size > 0)
+                    {
+                        int start = nodes[currID].triIdStart;
+                        int end = start + size;
+                        for (int i = start; i < end; i++)
+                        {
+                            KDN::Triangle t = triangles[i];
+
+                            glm::vec3 v1(t.x1, t.y1, t.z1);
+                            glm::vec3 v2(t.x2, t.y2, t.z2);
+                            glm::vec3 v3(t.x3, t.y3, t.z3);
+
+                            glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                            bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                         r.direction,
+                                                                         v3, v2, v1, barytemp);
+                            if (intersected && barytemp.z < mindist)
+                            {
+                                dist = barytemp.z;
+                                mindist = dist;
+                                //glm::vec3 pos = r.origin + r.direction * dist;
+
+                                glm::vec3 intersect = r.origin + r.direction*dist;
+                                printf("KDLOOPPTR INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
+                                       intersect.y,
+                                       intersect.z,
+                                       currID);
+                            }
+                        }
+                    }
+
+                }
+                else
+                    currID = nodes[currID].parentID;
+            }
+        }
+    }
+
+
+    delete[] nodeIDs;
+
+    return;
+}
+
+
+vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (numNodes == 0)
+        return offsets;
+
+    for (int i = 0; i < numNodes; i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+
+vector<int> cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i]->triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i]->triIdStart = triCount;
+            nodes[i]->triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i]->triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i]->ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+vector<int> cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+void deleteTree(KDN::KDnode* root)
+{
+    if (root != NULL)
+    {
+        deleteTree(root->left);
+        deleteTree(root->right);
+        //delete root;
+
+        if (root->left != NULL)
+            root->left = NULL;
+        if (root->right != NULL)
+            root->right = NULL;
+
+        delete root;
+        root = NULL;
+    }
+}
+
+bool nodeComparator(const void* a, const void* b)
+{
+    int ida = (*(KDN::KDnode*)a).ID;
+    int idb = (*(KDN::KDnode*)b).ID;
+
+    if (ida <= idb)
+        return true;
+    else if (ida > idb)
+        return false;
+}
+
+
+// ------------------------------------------------------------------------
+// ------------------------ KD TREE UTILITIES END -------------------------
+// ------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void pathtraceFree(Scene *scene) {
     cudaFree(dev_image);  // no-op if dev_image is null
@@ -376,7 +818,6 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
 
 
 
-// TODO: 
 // pathTraceOneBounce handles ray intersections, generate intersections for shading, 
 // and scatter new ray. You might want to call scatterRay from interactions.h
 __global__ void pathTraceOneBounce(
@@ -630,6 +1071,184 @@ __global__ void pathTraceOneBounce(
                 //pathSegments[path_index].ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
                 //pathSegments[path_index].ray.origin = intersect_point;
 
+
+                if (obj_intersect)
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = objMaterialIdx; // test material
+                    intersections[path_index].surfaceNormal = normal;
+                }
+                else
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+                    intersections[path_index].surfaceNormal = normal;
+                }
+            }
+        }
+    }
+}
+
+
+// pathTraceOneBounce handles ray intersections, generate intersections for shading, 
+// This is the KD-tree implementation
+__global__ void pathTraceOneBounceKD(
+    int depth
+    , int iter
+    , int num_paths
+    , PathSegment * pathSegments
+    , Geom * geoms
+    , int geoms_size
+    , Material * materials
+    , int material_size
+    , ShadeableIntersection * intersections
+    , float softness
+    , KDN::Triangle* triangles
+    , int numTriangles
+    , KDN::KDnode* kdnodes
+    , int numNodes
+    , int hasobj
+    )
+{
+    int path_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (path_index < num_paths)
+    {
+        //path_index = pathSegments[path_index].pixelIndex;
+        PathSegment pathSegment = pathSegments[path_index];
+        //printf("\nO1");
+        if (pathSegments[path_index].remainingBounces>0)
+        {
+            float t;
+            glm::vec3 intersect_point;
+            glm::vec3 normal;
+            float t_min = FLT_MAX;
+            int hit_geom_index = -1;
+            bool outside = true;
+
+            glm::vec3 tmp_intersect;
+            glm::vec3 tmp_normal;
+
+            glm::vec3 hit;
+            glm::vec3 norm;
+            glm::vec3 bary;
+            glm::vec3 v1;
+            glm::vec3 v2;
+            glm::vec3 v3;
+            glm::vec3 n1;
+            glm::vec3 n2;
+            glm::vec3 n3;
+            int pidxo1 = 0;
+            int pidxo2 = 0;
+            int pidxo3 = 0;
+            bool intersected = false;
+            bool obj_intersect = false;
+            // naive parse through global geoms
+            //printf("\nO2");
+
+            int objMaterialIdx = -1;
+            for (int i = 0; i < geoms_size; i++)
+            {
+                Geom & geom = geoms[i];
+
+                if (geom.type == CUBE)
+                {
+                    t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+                else if (geom.type == SPHERE)
+                {
+                    t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+
+                // TODO KDTREE TRAVERSAL
+
+                // Compute the minimum t from the intersection tests to determine what
+                // scene geometry object was hit first.
+                if (t > 0.0f && t_min > t)
+                {
+                    t_min = t;
+                    hit_geom_index = i;
+                    intersect_point = tmp_intersect;
+                    normal = tmp_normal;
+                }
+            }
+
+            // start polygon hits
+            //t_min = FLT_MAX;
+            //for (int i = 0; i < obj_numshapes; i++)
+            //    printf("\noffset = %d", obj_polyoffsets[i]);
+
+
+            //printf("\nO3");
+            //printf("\nNUMSHAPES = %d\n", obj_numshapes);
+            objMaterialIdx = -1;
+            int iterator = 0;
+            if (hasobj)
+            {
+                float dist = -1.0f;
+                intersectKDLoopDeref(pathSegment.ray, kdnodes, numNodes, triangles, numTriangles, dist);
+                
+                if (dist != -1 && dist < t_min)
+                {
+                    hit_geom_index = 0;
+                    obj_intersect = true;
+                    t_min = dist;
+                    intersect_point = pathSegment.ray.origin + pathSegment.ray.direction*dist;
+                    
+                    // TODO add normals to Triangle class and get them
+                    // testing with default normal
+                    normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+            }
+
+
+
+            //printf("\nO11");
+
+            // TODO: scatter the ray, generate intersections for shading
+            // feel free to modify the code below
+
+            if (hit_geom_index == -1)
+            {
+                intersections[path_index].t = -1.0f;
+            }
+            else
+            {
+                //The ray hits something
+                //intersections[path_index].t = t_min;
+                //intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+                //intersections[path_index].surfaceNormal = normal;
+
+
+                // updating rays
+                //thrust::default_random_engine rng = makeSeededRandomEngine(iter, depth, depth); // WAY TOO COOL!
+                thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
+
+
+                if (obj_intersect)
+                {
+                    pathSegments[path_index].materialIdHit = objMaterialIdx;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[objMaterialIdx],
+                               rng,
+                               softness);
+                }
+                else
+                {
+                    pathSegments[path_index].materialIdHit = geoms[hit_geom_index].materialid;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[geoms[hit_geom_index].materialid],
+                               rng,
+                               softness);
+                }
 
                 if (obj_intersect)
                 {

@@ -82,7 +82,54 @@ void saxpy_fast2(float A, thrust::device_vector<float>& X, thrust::device_vector
 */
 
 
-std::vector<KDN::Triangle*> getTrianglesFromFile(const char* path)
+std::vector<KDN::Triangle*> _getTrianglesFromScene(Scene* scene)
+{
+    vector<KDN::Triangle*> triangles;
+    
+    int iterator = 0;
+
+    int pidxo1 = 0;
+    int pidxo2 = 0;
+    int pidxo3 = 0;
+
+    for (int i = 0; i < scene->obj_numshapes; i++)
+    {
+        for (int j = iterator; j < iterator + scene->obj_polyoffsets[i]; j += 3)
+        {
+            pidxo1 = 3 * scene->obj_polysidxflat[j];
+            pidxo2 = 3 * scene->obj_polysidxflat[j + 1];
+            pidxo3 = 3 * scene->obj_polysidxflat[j + 2];
+
+            KDN::Triangle* t = new KDN::Triangle(
+                scene->obj_verts[pidxo1],
+                scene->obj_verts[pidxo1 + 1],
+                scene->obj_verts[pidxo1 + 2],
+                scene->obj_verts[pidxo2],
+                scene->obj_verts[pidxo2 + 1],
+                scene->obj_verts[pidxo2 + 2],
+                scene->obj_verts[pidxo3],
+                scene->obj_verts[pidxo3 + 1],
+                scene->obj_verts[pidxo3 + 2],
+                scene->obj_norms[pidxo1],
+                scene->obj_norms[pidxo1 + 1],
+                scene->obj_norms[pidxo1 + 2],
+                scene->obj_norms[pidxo2],
+                scene->obj_norms[pidxo2 + 1],
+                scene->obj_norms[pidxo2 + 2],
+                scene->obj_norms[pidxo3],
+                scene->obj_norms[pidxo3 + 1],
+                scene->obj_norms[pidxo3 + 2]);
+            
+            triangles.push_back(t);
+        }
+
+         iterator += scene->obj_polyoffsets[i];
+    }
+
+    return triangles;
+}
+
+std::vector<KDN::Triangle*> _getTrianglesFromFile(const char* path)
 {
     std::vector<KDN::Triangle*>triangles;
 
@@ -115,7 +162,7 @@ std::vector<KDN::Triangle*> getTrianglesFromFile(const char* path)
 
 
 // fast AABB intersection
-bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
+bool _intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
 {
 
     glm::vec3 invdir(1.0f / r.direction.x,
@@ -162,14 +209,14 @@ bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
 }
 
 
-float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
+float _intersectKD(Ray r, KDN::KDnode* node, float mindist = FLT_MAX)
 {
     r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
     r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
     glm::normalize(r.direction);
 
     float dist;
-    bool hit = intersectAABB(r, node->bbox, dist);
+    bool hit = _intersectAABB(r, node->bbox, dist);
 
     if (hit)
     {
@@ -189,7 +236,7 @@ float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
                 glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
                 bool intersected = glm::intersectRayTriangle(r.origin,
                                                         r.direction,
-                                                        v3, v2, v1, barytemp);
+                                                        v1, v2, v3, barytemp);
 
                 //glm::vec3 bary(barytemp.x, barytemp.y, 1.0 - barytemp.x - barytemp.y);
                 //printf("DIST %f ", dist);
@@ -212,27 +259,27 @@ float intersectKD(Ray r, KDN::KDnode* node, float mindist=FLT_MAX)
         }
 
         if (node->left)
-            intersectKD(r, node->left, mindist);
+            _intersectKD(r, node->left, mindist);
 
         if (node->right)
-            intersectKD(r, node->right, mindist);
+            _intersectKD(r, node->right, mindist);
     }
 
     return dist;
 }
 
 
-void getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+void _getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
 {
     if (root != NULL)
     {
         nodes.push_back(root);
-        getKDnodes(root->left, nodes);
-        getKDnodes(root->right, nodes);
+        _getKDnodes(root->left, nodes);
+        _getKDnodes(root->right, nodes);
     }
 }
 
-void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+void _getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
 {
     KDN::KDnode* currNode = root;
     while (true)
@@ -273,7 +320,7 @@ void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
 }
 
 
-void getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
+void _getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
 {
     KDN::KDnode* currNode = root;
 
@@ -316,7 +363,7 @@ void getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
 
 
 
-float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
+float _intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 {
     float dist = -1.0;
     bool hit = false;
@@ -362,7 +409,7 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
             printf("\n");
             
             // check if it intersects the bounds
-            if (intersectAABB(r, nodes[currID]->bbox, boxdist) == false)
+            if (_intersectAABB(r, nodes[currID]->bbox, boxdist) == false)
             {
                 nodeIDs[nodes[currID]->ID] = true;
                 currID = nodes[currID]->parentID;
@@ -394,7 +441,7 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
                             glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
                             bool intersected = glm::intersectRayTriangle(r.origin,
                                                                          r.direction,
-                                                                         v3, v2, v1, barytemp);
+                                                                         v1, v2, v3, barytemp);
                             if (intersected && barytemp.z < mindist)
                             {
                                 dist = barytemp.z;
@@ -424,7 +471,7 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 }
 
 // loop version of copies tree traversal
-float intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangle* triangles, int numTriangles)
+float _intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangle* triangles, int numTriangles)
 {
     float dist = -1.0;
     bool hit = false;
@@ -472,7 +519,7 @@ float intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangl
             //printf("\n");
 
             // check if it intersects the bounds
-            if (intersectAABB(r, nodes[currID].bbox, boxdist) == false)
+            if (_intersectAABB(r, nodes[currID].bbox, boxdist) == false)
             {
                 nodeIDs[nodes[currID].ID] = true;
                 currID = nodes[currID].parentID;
@@ -535,7 +582,7 @@ float intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangl
                             glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
                             bool intersected = glm::intersectRayTriangle(r.origin,
                                                                          r.direction,
-                                                                         v3, v2, v1, barytemp);
+                                                                         v1, v2, v3, barytemp);
                             if (intersected && barytemp.z < mindist)
                             {
                                 dist = barytemp.z;
@@ -569,7 +616,7 @@ float intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangl
 }
 
 
-vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
+vector<int> _cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
 {
     
     int triCount = 0;
@@ -604,7 +651,7 @@ vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangl
 }
 
 
-vector<int> cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
+vector<int> _cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
 {
 
     int triCount = 0;
@@ -638,7 +685,7 @@ vector<int> cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle
     return offsets;
 }
 
-vector<int> cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
+vector<int> _cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
 {
 
     int triCount = 0;
@@ -672,12 +719,12 @@ vector<int> cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>
     return offsets;
 }
 
-void deleteTree(KDN::KDnode* root)
+void _deleteTree(KDN::KDnode* root)
 {
     if (root != NULL)
     {
-        deleteTree(root->left);
-        deleteTree(root->right);
+        _deleteTree(root->left);
+        _deleteTree(root->right);
         //delete root;
 
         if (root->left != NULL)
@@ -690,7 +737,7 @@ void deleteTree(KDN::KDnode* root)
     }
 }
 
-bool nodeComparator(const void* a, const void* b)
+bool _nodeComparator(const void* a, const void* b)
 {
     int ida = (*(KDN::KDnode*)a).ID;
     int idb = (*(KDN::KDnode*)b).ID;
@@ -720,18 +767,48 @@ int main(int argc, char** argv) {
             {
                 printf("\n running test\n");
 
+                
                 // read file generated from Houdini and get triangles
                 char path[1024];
                 if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path)))
-                {
-                    printf("path = %s\n", path);
-                }
+                {printf("path = %s\n", path);}
+
+                char sceneFile[1024];
+                if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, sceneFile)))
+                {printf("sceneFile = %s\n", sceneFile);}
+
+                /*
                 strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
                 printf("path = %s\n", path);
 
                 // read the file and save triangles into vector
-                std::vector<KDN::Triangle*> triangles = getTrianglesFromFile(path);
+                std::vector<KDN::Triangle*> triangles = _getTrianglesFromFile(path);
+                */
+
+
+                // use OBJ file:
+                strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data.obj");
+                strcat_s(sceneFile, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/scenes/cornell4.txt");
+                printf("path = %s\n", path);
+                printf("sceneFile = %s\n", sceneFile);
+                std::string objPath = path;
+
+                // Load scene file
+                scene = new Scene(sceneFile);
+                //scene->loadObj(objPath, objPath.substr(0, objPath.find_last_of("/\\") + 1));
+                scene->loadObj("C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data.obj",
+                               "C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/");
+
+
                 
+                std::vector<KDN::Triangle*> triangles = _getTrianglesFromScene(scene);
+                
+
+
+
+
+
+
 
                 // test kdtree class generator
                 //KDtree* KDT = new KDtree(path);
@@ -778,8 +855,8 @@ int main(int argc, char** argv) {
                 // This is to help recursion removal for CUDA
                 // THANK YOU NVIDIA for this...
                 vector<KDN::KDnode*> nodes;
-                getKDnodes(KDT->rootNode, nodes);
-                std::sort(nodes.begin(), nodes.end(), nodeComparator);
+                _getKDnodes(KDT->rootNode, nodes);
+                std::sort(nodes.begin(), nodes.end(), _nodeComparator);
 
                 
                 /*
@@ -812,16 +889,16 @@ int main(int argc, char** argv) {
                 */
                 
                 vector<KDN::Triangle> newTriangles;
-                vector<int> offsets = cacheTriangles(nodes, newTriangles);
+                vector<int> offsets = _cacheTriangles(nodes, newTriangles);
 
 
                 vector<KDN::KDnode*> nodesLoop;
-                getKDnodesLoop(KDT->rootNode, nodesLoop);
+                _getKDnodesLoop(KDT->rootNode, nodesLoop);
                 std::sort(nodesLoop.begin(), nodesLoop.end());
 
 
                 vector<KDN::KDnode> nodesLoopDeref;
-                getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
+                _getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
                 std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
 
 
@@ -915,9 +992,9 @@ int main(int argc, char** argv) {
                 glm::normalize(r.direction);
 
 
-                intersectKD(r, KDT->rootNode);
+                _intersectKD(r, KDT->rootNode);
 
-                intersectKDLoop(r, nodes);
+                _intersectKDLoop(r, nodes);
 
                 int numNodes = nodesLoopDeref.size();
                 KDN::KDnode* nodesPtr = new KDN::KDnode[numNodes];
@@ -961,10 +1038,9 @@ int main(int argc, char** argv) {
                 }
                 */
 
-
-
+                
                 //printf("numnodes = %d %d %d\n", numNodes, nodesLoopDeref.size(), nodesLoop.size());
-                intersectKDLoopDeref(r, nodesPtr, numNodes, newTriangles.data(), newTriangles.size());
+                _intersectKDLoopDeref(r, nodesPtr, numNodes, newTriangles.data(), newTriangles.size());
 
                 //delete[] nodesPtr;
 

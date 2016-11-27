@@ -44,8 +44,12 @@ namespace KDN
     public:
         int nodeID;
         float x1, x2, x3,
-            y1, y2, y3,
-            z1, z2, z3;
+              y1, y2, y3,
+              z1, z2, z3;
+
+        float nx1, nx2, nx3,
+            ny1, ny2, ny3,
+            nz1, nz2, nz3;
 
         float center[3];
         float mins[3];
@@ -56,6 +60,10 @@ namespace KDN
             x1 = 0.0; y1 = 0.0; z1 = 0.0;
             x2 = 0.0; y2 = 0.0; z2 = 0.0;
             x3 = 0.0; y3 = 0.0; z3 = 0.0;
+
+            nx1 = 0.0; ny1 = 0.0; nz1 = 0.0;
+            nx2 = 0.0; ny2 = 0.0; nz2 = 0.0;
+            nx3 = 0.0; ny3 = 0.0; nz3 = 0.0;
 
             center[0] = 0.0;
             center[1] = 0.0;
@@ -72,6 +80,30 @@ namespace KDN
             x2 = X2; y2 = Y2; z2 = Z2;
             x3 = X3; y3 = Y3; z3 = Z3;
 
+            nx1 = 0.0; ny1 = 0.0; nz1 = 0.0;
+            nx2 = 0.0; ny2 = 0.0; nz2 = 0.0;
+            nx3 = 0.0; ny3 = 0.0; nz3 = 0.0;
+
+            computeCentroid();
+            computeBounds();
+            nodeID = -1;
+        }
+
+        Triangle(float X1, float Y1, float Z1,
+                 float X2, float Y2, float Z2,
+                 float X3, float Y3, float Z3,
+                 float NX1, float NY1, float NZ1,
+                 float NX2, float NY2, float NZ2,
+                 float NX3, float NY3, float NZ3)
+        {
+            x1 = X1; y1 = Y1; z1 = Z1;
+            x2 = X2; y2 = Y2; z2 = Z2;
+            x3 = X3; y3 = Y3; z3 = Z3;
+
+            nx1 = NX1; ny1 = NY1; nz1 = NZ1;
+            nx2 = NX2; ny2 = NY2; nz2 = NZ2;
+            nx3 = NX3; ny3 = NY3; nz3 = NZ3;
+
             computeCentroid();
             computeBounds();
             nodeID = -1;
@@ -85,6 +117,10 @@ namespace KDN
             x2 = val; y2 = val; z2 = val;
             x3 = val; y3 = val; z3 = val;
 
+            nx1 = 0.0; ny1 = 0.0; nz1 = 0.0;
+            nx2 = 0.0; ny2 = 0.0; nz2 = 0.0;
+            nx3 = 0.0; ny3 = 0.0; nz3 = 0.0;
+
             center[0] = val; center[1] = val; center[2] = val;
             computeBounds();
         }
@@ -96,6 +132,26 @@ namespace KDN
             x1 = X1; y1 = Y1; z1 = Z1;
             x2 = X2; y2 = Y2; z2 = Z2;
             x3 = X3; y3 = Y3; z3 = Z3;
+
+            computeCentroid();
+            computeBounds();
+        }
+
+
+        void setValues(float X1, float Y1, float Z1,
+                       float X2, float Y2, float Z2,
+                       float X3, float Y3, float Z3,
+                       float NX1, float NY1, float NZ1,
+                       float NX2, float NY2, float NZ2,
+                       float NX3, float NY3, float NZ3)
+        {
+            x1 = X1; y1 = Y1; z1 = Z1;
+            x2 = X2; y2 = Y2; z2 = Z2;
+            x3 = X3; y3 = Y3; z3 = Z3;
+
+            nx1 = NX1; ny1 = NY1; nz1 = NZ1;
+            nx2 = NX2; ny2 = NY2; nz2 = NZ2;
+            nx3 = NX3; ny3 = NY3; nz3 = NZ3;
 
             computeCentroid();
             computeBounds();
