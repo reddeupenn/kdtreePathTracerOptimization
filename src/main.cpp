@@ -1,6 +1,7 @@
 #include "main.h"
 #include "preview.h"
 #include <cstring>
+#include <algorithm>
 
 #include "objmesh.h"
 
@@ -321,17 +322,61 @@ void getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
+
+void getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
+{
+    KDN::KDnode* currNode = root;
+
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == false)
+        {
+            std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode[0]);
+            currNode->visited = true;
+        }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
+        else
+            currNode = currNode->parent;
+    }
+}
+
+
+
 float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 {
     float dist = 0.0;
     bool hit = false;
 
-    r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
-    r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
-    glm::normalize(r.direction);
+    //r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+    //r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+    //glm::normalize(r.direction);
 
 
-    // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO -1 once they're visited
+    // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO 1 once they're visited
     // instead of using visited to avoid conflicts when reading from
     // multiple threads
     bool* nodeIDs = new bool[nodes.size()];
@@ -344,20 +389,33 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
     {
         float mindist = FLT_MAX;
         int currID = nodeIDs[nodes[0]->ID];
+
+        //for (int i = 0; i < nodes.size(); i++)
+        //    printf("NODE: %d parent: %d left: %d right: %d\n", nodes[i]->ID,
+        //                                                       nodes[i]->parentID,
+        //                                                       nodes[i]->leftID,
+        //                                                       nodes[i]->rightID);
+
         while (true)
         {
+
             if (currID == -1)
                 break;
 
+            //for (int i = 0; i < nodes.size(); i++)
+            //    printf("%d ", nodeIDs[i]);
+            //printf("\n");
+
             if (nodes[currID]->leftID != -1 && nodeIDs[nodes[currID]->leftID] != true)
-                currID = nodes[currID]->left->ID;
+                currID = nodes[currID]->leftID;
             else if (nodes[currID]->rightID != -1 && nodeIDs[nodes[currID]->rightID] != true)
-                currID = nodes[currID]->right->ID;
+                currID = nodes[currID]->rightID;
             else if (nodeIDs[nodes[currID]->ID] == false)
             {
-                std::cout << "NODE LOOP: " << nodes[currID]->ID << std::endl;
+                //std::cout << "NODE LOOP: " << nodes[currID]->ID << std::endl;
                 nodeIDs[nodes[currID]->ID] = true;
 
+                
                 int numtris = nodes[currID]->triangles.size();
                 if (numtris != 0)
                 {
@@ -387,6 +445,7 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
                         }
                     }
                 }
+                
             }
             else
                 currID = nodes[currID]->parentID;
@@ -399,6 +458,174 @@ float intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
     return dist;
 }
 
+// loop version of copies tree traversal
+float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
+{
+    float dist = 0.0;
+    bool hit = false;
+
+    //r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
+    //r.direction = glm::vec3(-0.5f, -0.5f, -0.71f);
+    //glm::normalize(r.direction);
+
+
+    // USE AN ARRAY OF 0 NODE IDS AND SET THEM TO 1 once they're visited
+    // instead of using visited to avoid conflicts when reading from
+    // multiple threads
+    bool* nodeIDs = new bool[numNodes];
+    memset(nodeIDs, 0, sizeof(bool)*numNodes);
+
+
+    if (numNodes == 0)
+        return dist;
+    else
+    {
+        float mindist = FLT_MAX;
+        int currID = nodeIDs[nodes[0].ID];
+
+        //for (int i = 0; i < numNodes; i++)
+        //    printf("NODE: %d parent: %d left: %d right: %d\n", nodes[i].ID, 
+        //                                                       nodes[i].parentID,
+        //                                                       nodes[i].leftID,
+        //                                                       nodes[i].rightID);
+
+        // get the root node
+        for (int i = 0; i < numNodes; i++)
+        {
+            if (nodes[i].parentID == -1)
+            {
+                currID = nodes[i].ID;
+                break;
+            }
+        }
+
+
+        while (true)
+        {
+
+            if (currID == -1)
+                break;
+
+            //printf("SECOND: ");
+            //for (int i = 0; i < numNodes; i++)
+            //    printf("%d ", nodeIDs[i]);
+            //printf("\n");
+
+            if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                currID = nodes[currID].leftID;
+            else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                currID = nodes[currID].rightID;
+            else if (nodeIDs[nodes[currID].ID] == false)
+            {
+                //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID << std::endl;
+                nodeIDs[nodes[currID].ID] = true;
+
+                
+                int numtris = nodes[currID].triangles.size();
+                if (numtris != 0)
+                {
+                    for (int i = 0; i < numtris; i++)
+                    {
+                        KDN::Triangle* t = nodes[currID].triangles[i];
+
+                        glm::vec3 v1(t->x1, t->y1, t->z1);
+                        glm::vec3 v2(t->x2, t->y2, t->z2);
+                        glm::vec3 v3(t->x3, t->y3, t->z3);
+
+                        glm::vec3 barytemp(0.0f, 0.0f, 0.0f);
+                        bool intersected = glm::intersectRayTriangle(r.origin,
+                                                                     r.direction,
+                                                                     v3, v2, v1, barytemp);
+                        if (intersected && barytemp.z < mindist)
+                        {
+                            dist = barytemp.z;
+                            mindist = dist;
+                            //glm::vec3 pos = r.origin + r.direction * dist;
+
+                            glm::vec3 intersect = r.origin + r.direction*dist;
+                            printf("LOOP INTERSECT POINT: P: [%f %f %f] NODEID: %d\n", intersect.x,
+                                   intersect.y,
+                                   intersect.z,
+                                   currID);
+                        }
+                    }
+                }
+                
+            }
+            else
+                currID = nodes[currID].parentID;
+
+            //std::cout << "NODE LOOP: " << nodes[currID].ID << " PARENT: " << nodes[currID].parentID 
+            //          << " LEFT: " << nodes[currID].leftID
+            //          << " RIGHT: " << nodes[currID].rightID
+            //          << std::endl;
+        }
+    }
+
+
+    delete[] nodeIDs;
+
+    return dist;
+}
+
+
+vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
+{
+    int triCount = 0;
+    vector<int> offsets;
+
+    for (int i = 0; i < numNodes; i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+    return offsets;
+}
+
+
+
+void deleteTree(KDN::KDnode* root)
+{
+    if (root != NULL)
+    {
+        deleteTree(root->left);
+        deleteTree(root->right);
+        //delete root;
+
+        if (root->left != NULL)
+            root->left = NULL;
+        if (root->right != NULL)
+            root->right = NULL;
+
+        delete root;
+        root = NULL;
+    }
+}
+
+bool comparator(const void* a, const void* b)
+{
+    int ida = (*(KDN::KDnode*)a).ID;
+    int idb = (*(KDN::KDnode*)b).ID;
+
+    if (ida <= idb)
+        return true;
+    //if (ida == idb)
+    //    return 0;
+    if (ida > idb)
+        return false;
+}
 
 //-------------------------------
 //-------------MAIN--------------
@@ -471,17 +698,24 @@ int main(int argc, char** argv) {
 
 
 
-                              
-
+                          
 
                 // Accessing kd nodes and triangles as a flat structure
                 // This is to help recursion removal for CUDA
                 // THANK YOU NVIDIA for this...
                 vector<KDN::KDnode*> nodes;
                 getKDnodes(KDT->rootNode, nodes);
+                std::sort(nodes.begin(), nodes.end(), comparator);
 
                 vector<KDN::KDnode*> nodesLoop;
                 getKDnodesLoop(KDT->rootNode, nodesLoop);
+                std::sort(nodesLoop.begin(), nodesLoop.end());
+                
+
+                vector<KDN::KDnode> nodesLoopDeref;
+                getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
+                std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
+
 
                 // ------------------------------------------------------------
                 // IMPORTANT:  This is the flattening part of the triangle data
@@ -506,7 +740,9 @@ int main(int argc, char** argv) {
 
                     std::cout << "node: " << nodes[i] << " numtris: " << numTriangles << std::endl;
                 }
-
+                // ------------------------------------------------------------
+                // IMPORTANT:  USE THIS FOR TRIANGLES ACCESS !!!!!!!!!!!!!!!!!!
+                // ------------------------------------------------------------
 
 
 
@@ -589,6 +825,64 @@ int main(int argc, char** argv) {
 
                 intersectKDLoop(r, nodes);
 
+                int numNodes = nodesLoopDeref.size();
+                KDN::KDnode* nodesPtr = new KDN::KDnode[numNodes];
+                memcpy(nodesPtr, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
+                //std::copy(nodesLoopDeref.begin(), nodesLoopDeref.end(), nodesPtr);
+
+
+                // print nodes vector and nodesderef vectors
+                for (int i = 0; i < nodesLoop.size(); i++)
+                {
+                    printf("     nodesloop: %d p:%d l:%d r:%d\nnodesloopderef: %d p:%d l:%d r:%d\n  nodesloopptr: %d p:%d l:%d r:%d\n", nodesLoop[i]->ID,
+                           nodesLoop[i]->parentID,
+                           nodesLoop[i]->leftID,
+                           nodesLoop[i]->rightID,
+                           nodesLoopDeref[i].ID,
+                           nodesLoopDeref[i].parentID,
+                           nodesLoopDeref[i].leftID,
+                           nodesLoopDeref[i].rightID,
+                           nodesPtr[i].ID,
+                           nodesPtr[i].parentID,
+                           nodesPtr[i].leftID,
+                           nodesPtr[i].rightID);
+                    /*
+                    if (nodesLoop[i]->leftID != -1)
+                        printf("     nodesloop: l:%d %d\nnodesloopderef: l:%d %d\n  nodesloopptr: l:%d %d\n",
+                        nodesLoop[i]->left->ID,
+                        nodesLoop[i]->leftID,
+                        nodesLoopDeref[i].left->ID,
+                        nodesLoopDeref[i].leftID,
+                        nodesPtr[i].left->ID,
+                        nodesPtr[i].leftID);
+
+                    if (nodesLoop[i]->rightID != -1)
+                        printf("     nodesloop: r:%d %d\nnodesloopderef: r:%d %d\n  nodesloopptr: r:%d %d\n",
+                        nodesLoop[i]->right->ID,
+                        nodesLoop[i]->rightID,
+                        nodesLoopDeref[i].right->ID,
+                        nodesLoopDeref[i].rightID,
+                        nodesPtr[i].right->ID,
+                        nodesPtr[i].rightID);
+                     */
+                }
+
+
+
+                //printf("numnodes = %d %d %d\n", numNodes, nodesLoopDeref.size(), nodesLoop.size());
+                intersectKDLoopPtr(r, nodesPtr, numNodes);
+
+                //delete[] nodesPtr;
+
+                
+                // cleanup
+                //for (int i = 0; i < triangles.size(); i++)
+                //{
+                //    delete triangles[i];
+                //    triangles[i] = NULL;
+                //}
+                
+                //delete [] triangles.data();
 
 
                 delete KDT;

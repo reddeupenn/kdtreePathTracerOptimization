@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <stdlib.h>
 #include <vector>
 
 namespace KDN
@@ -234,5 +234,6 @@ namespace KDN
         int getLevel(KDnode* n);
         void add(Triangle* t);
         void updateBbox(KDnode* n);
+        bool operator<(const KDnode& rhs);
     };
 }

@@ -1,7 +1,7 @@
-
 #include "KDnode.h"
 
 static int currentID = 0;
+
 
 KDN::KDnode::KDnode()
 {
@@ -367,3 +367,10 @@ void KDN::KDnode::updateBbox(KDnode* n)
         }
     }
 }
+
+bool KDN::KDnode::operator<(const KDnode& rhs)
+{
+    return this->ID < rhs.ID;
+}
+
+

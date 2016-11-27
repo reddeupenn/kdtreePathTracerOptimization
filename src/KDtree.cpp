@@ -77,6 +77,12 @@ void KDtree::deleteTree(KDN::KDnode* root)
         if (root->right != NULL)
             root->right = NULL;
 
+        //for (int i = 0; i < root->triangles.size(); i++)
+        //{
+        //    delete root->triangles[i];
+        //    root->triangles[i] = NULL;
+        //}
+
         delete root;
         root = NULL;
     }
