@@ -211,10 +211,14 @@ namespace KDN
         KDnode* right;
         BoundingBox bbox;
         std::vector< Triangle* > triangles;
+        
         int ID;
         int parentID;
         int leftID;
         int rightID;
+
+        int triIdStart;
+        int triIdSize;
 
         KDnode();
         KDnode(Triangle* t);

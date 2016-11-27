@@ -14,6 +14,9 @@ KDN::KDnode::KDnode()
     parentID = -1;
     leftID = -1;
     rightID = -1;
+
+    triIdStart = -1;
+    triIdSize = -1;
 }
 
 KDN::KDnode::KDnode(Triangle* t)
@@ -28,6 +31,9 @@ KDN::KDnode::KDnode(Triangle* t)
     parentID = -1;
     leftID = -1;
     rightID = -1;
+
+    triIdStart = -1;
+    triIdSize = -1;
 }
 
 KDN::KDnode::KDnode(Triangle* t, int axis)
@@ -42,6 +48,9 @@ KDN::KDnode::KDnode(Triangle* t, int axis)
     parentID = -1;
     leftID = -1;
     rightID = -1;
+
+    triIdStart = -1;
+    triIdSize = -1;
 }
 
 KDN::KDnode::KDnode(Triangle** t, int size, int axis)
@@ -60,6 +69,9 @@ KDN::KDnode::KDnode(Triangle** t, int size, int axis)
     leftID = -1;
     rightID = -1;
     updateBbox();
+
+    triIdStart = -1;
+    triIdSize = -1;
 }
 
 KDN::KDnode::~KDnode() {}

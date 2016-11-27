@@ -571,14 +571,22 @@ float intersectKDLoopPtr(Ray r, KDN::KDnode* nodes, int numNodes)
 
 vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
 {
+    
     int triCount = 0;
     vector<int> offsets;
+
+    if (numNodes == 0)
+        return offsets;
 
     for (int i = 0; i < numNodes; i++)
     {
         int numTriangles = nodes[i].triangles.size();
         if (numTriangles > 0)
         {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
             triCount += numTriangles;
             offsets.push_back(triCount);
 
@@ -591,10 +599,78 @@ vector<int> cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangl
         std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
     }
 
+
     return offsets;
 }
 
 
+vector<int> cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i]->triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i]->triIdStart = triCount;
+            nodes[i]->triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i]->triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i]->ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+vector<int> cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
 
 void deleteTree(KDN::KDnode* root)
 {
@@ -614,16 +690,14 @@ void deleteTree(KDN::KDnode* root)
     }
 }
 
-bool comparator(const void* a, const void* b)
+bool nodeComparator(const void* a, const void* b)
 {
     int ida = (*(KDN::KDnode*)a).ID;
     int idb = (*(KDN::KDnode*)b).ID;
 
     if (ida <= idb)
         return true;
-    //if (ida == idb)
-    //    return 0;
-    if (ida > idb)
+    else if (ida > idb)
         return false;
 }
 
@@ -705,18 +779,10 @@ int main(int argc, char** argv) {
                 // THANK YOU NVIDIA for this...
                 vector<KDN::KDnode*> nodes;
                 getKDnodes(KDT->rootNode, nodes);
-                std::sort(nodes.begin(), nodes.end(), comparator);
+                std::sort(nodes.begin(), nodes.end(), nodeComparator);
 
-                vector<KDN::KDnode*> nodesLoop;
-                getKDnodesLoop(KDT->rootNode, nodesLoop);
-                std::sort(nodesLoop.begin(), nodesLoop.end());
                 
-
-                vector<KDN::KDnode> nodesLoopDeref;
-                getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
-                std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
-
-
+                /*
                 // ------------------------------------------------------------
                 // IMPORTANT:  This is the flattening part of the triangle data
                 // ------------------------------------------------------------
@@ -743,9 +809,20 @@ int main(int argc, char** argv) {
                 // ------------------------------------------------------------
                 // IMPORTANT:  USE THIS FOR TRIANGLES ACCESS !!!!!!!!!!!!!!!!!!
                 // ------------------------------------------------------------
+                */
+                
+                vector<KDN::Triangle> newTriangles;
+                vector<int> offsets = cacheTriangles(nodes, newTriangles);
 
 
+                vector<KDN::KDnode*> nodesLoop;
+                getKDnodesLoop(KDT->rootNode, nodesLoop);
+                std::sort(nodesLoop.begin(), nodesLoop.end());
 
+
+                vector<KDN::KDnode> nodesLoopDeref;
+                getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
+                std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
 
 
                 for (int i = 0; i < nodes.size(); i++)
@@ -785,6 +862,23 @@ int main(int argc, char** argv) {
                         }
                     }
                 }
+
+
+                // TEST NODE TRIANGLE OFFSETS AND TRIANGLE DATA
+                for (int i = 0; i < nodesLoopDeref.size(); i++)
+                {
+                    if (nodesLoopDeref[i].triIdSize > 0)
+                    {
+                        int start = nodesLoopDeref[i].triIdStart;
+                        int end = start + nodesLoopDeref[i].triIdSize;
+
+                        for (int j = start; j < end; j++)
+                            printf("TRIANGLE CENTER2: [%f %f %f]\n", newTriangles[j].center[0],
+                                                                     newTriangles[j].center[1],
+                                                                     newTriangles[j].center[2]);
+                    }
+                }
+
 
                 printf("NUM NEW TRIANGLES: %d\n", offsets[offsets.size()-1]);
 
@@ -830,7 +924,7 @@ int main(int argc, char** argv) {
                 memcpy(nodesPtr, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
                 //std::copy(nodesLoopDeref.begin(), nodesLoopDeref.end(), nodesPtr);
 
-
+                /*
                 // print nodes vector and nodesderef vectors
                 for (int i = 0; i < nodesLoop.size(); i++)
                 {
@@ -846,26 +940,26 @@ int main(int argc, char** argv) {
                            nodesPtr[i].parentID,
                            nodesPtr[i].leftID,
                            nodesPtr[i].rightID);
-                    /*
-                    if (nodesLoop[i]->leftID != -1)
-                        printf("     nodesloop: l:%d %d\nnodesloopderef: l:%d %d\n  nodesloopptr: l:%d %d\n",
-                        nodesLoop[i]->left->ID,
-                        nodesLoop[i]->leftID,
-                        nodesLoopDeref[i].left->ID,
-                        nodesLoopDeref[i].leftID,
-                        nodesPtr[i].left->ID,
-                        nodesPtr[i].leftID);
+                    
+                    //if (nodesLoop[i]->leftID != -1)
+                    //    printf("     nodesloop: l:%d %d\nnodesloopderef: l:%d %d\n  nodesloopptr: l:%d %d\n",
+                    //    nodesLoop[i]->left->ID,
+                    //    nodesLoop[i]->leftID,
+                    //    nodesLoopDeref[i].left->ID,
+                    //    nodesLoopDeref[i].leftID,
+                    //    nodesPtr[i].left->ID,
+                    //    nodesPtr[i].leftID);
 
-                    if (nodesLoop[i]->rightID != -1)
-                        printf("     nodesloop: r:%d %d\nnodesloopderef: r:%d %d\n  nodesloopptr: r:%d %d\n",
-                        nodesLoop[i]->right->ID,
-                        nodesLoop[i]->rightID,
-                        nodesLoopDeref[i].right->ID,
-                        nodesLoopDeref[i].rightID,
-                        nodesPtr[i].right->ID,
-                        nodesPtr[i].rightID);
-                     */
+                    //if (nodesLoop[i]->rightID != -1)
+                    //    printf("     nodesloop: r:%d %d\nnodesloopderef: r:%d %d\n  nodesloopptr: r:%d %d\n",
+                    //    nodesLoop[i]->right->ID,
+                    //    nodesLoop[i]->rightID,
+                    //    nodesLoopDeref[i].right->ID,
+                    //    nodesLoopDeref[i].rightID,
+                    //    nodesPtr[i].right->ID,
+                    //    nodesPtr[i].rightID);
                 }
+                */
 
 
 
