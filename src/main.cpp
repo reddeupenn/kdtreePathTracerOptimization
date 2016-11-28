@@ -40,7 +40,7 @@ static bool camchanged = true;
 static float dtheta = 0, dphi = 0;
 static glm::vec3 cammove;
 
-static bool rayCaching = false;
+static bool rayCaching = true;// false;
 static bool antialias = true;
 static float softness = 0.0f;
 static bool SSS = true;
@@ -56,7 +56,7 @@ int iteration;
 int width;
 int height;
 
-static float dofAngle = 0.03f;
+static float dofAngle = 0.0f;// 0.03f;
 static float dofDistance = 6.0f;
 
 static bool TESTINGMODE = false;

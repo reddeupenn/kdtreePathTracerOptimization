@@ -98,6 +98,9 @@ Scene::~Scene()
         delete[] obj_polysidxflat;
 
     polyidxcount = 0;
+
+    delete[] newNodes;
+    delete[] newTriangles;
 }
 
 int Scene::loadGeom(string objectid) {
@@ -255,6 +258,276 @@ int Scene::loadMaterial(string materialid) {
     }
 }
 
+
+
+void Scene::getKDnodes_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    if (root != NULL)
+    {
+        nodes.push_back(root);
+        getKDnodes_(root->left, nodes);
+        getKDnodes_(root->right, nodes);
+    }
+}
+
+void Scene::getKDnodesLoop_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+{
+    KDN::KDnode* currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == false)
+        {
+            //std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode);
+            currNode->visited = true;
+        }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
+        else
+            currNode = currNode->parent;
+    }
+}
+
+void Scene::getKDnodesLoopDeref_(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
+{
+    KDN::KDnode* currNode = root;
+
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != true)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != true)
+            currNode = currNode->right;
+        else if (currNode->visited == false)
+        {
+            //std::cout << "NODE LOOP: " << currNode << std::endl;
+            nodes.push_back(currNode[0]);
+            currNode->visited = true;
+        }
+        else
+            currNode = currNode->parent;
+    }
+
+    // reset visited to false
+    currNode = root;
+    while (true)
+    {
+        if (currNode == NULL)
+            break;
+
+        if (currNode->left != NULL && currNode->left->visited != false)
+            currNode = currNode->left;
+        else if (currNode->right != NULL && currNode->right->visited != false)
+            currNode = currNode->right;
+        else if (currNode->visited == true)
+            currNode->visited = false;
+        else
+            currNode = currNode->parent;
+    }
+}
+
+vector<int> Scene::cacheTriangles_(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (numNodes == 0)
+        return offsets;
+
+    for (int i = 0; i < numNodes; i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i]->triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i]->triIdStart = triCount;
+            nodes[i]->triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i]->triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i]->ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
+{
+
+    int triCount = 0;
+    vector<int> offsets;
+
+    if (nodes.size() == 0)
+        return offsets;
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int numTriangles = nodes[i].triangles.size();
+        if (numTriangles > 0)
+        {
+            // update node triangle lookup
+            nodes[i].triIdStart = triCount;
+            nodes[i].triIdSize = numTriangles;
+
+            triCount += numTriangles;
+            offsets.push_back(triCount);
+
+            for (int j = 0; j < numTriangles; j++)
+            {
+                newTriangles.push_back(nodes[i].triangles[j][0]);
+            }
+        }
+
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+    }
+
+
+    return offsets;
+}
+
+void Scene::deleteTree_(KDN::KDnode* root)
+{
+    if (root != NULL)
+    {
+        deleteTree_(root->left);
+        deleteTree_(root->right);
+        //delete root;
+
+        if (root->left != NULL)
+            root->left = NULL;
+        if (root->right != NULL)
+            root->right = NULL;
+
+        delete root;
+        root = NULL;
+    }
+}
+
+bool nodeComparator_(const void* a, const void* b)
+{
+    int ida = (*(KDN::KDnode*)a).ID;
+    int idb = (*(KDN::KDnode*)b).ID;
+
+    if (ida <= idb)
+        return true;
+    else if (ida > idb)
+        return false;
+}
+
+std::vector<KDN::Triangle*> Scene::getTrianglesFromScene_(void)
+{
+    vector<KDN::Triangle*> triangles;
+
+    int iterator = 0;
+
+    int pidxo1 = 0;
+    int pidxo2 = 0;
+    int pidxo3 = 0;
+
+    for (int i = 0; i < obj_numshapes; i++)
+    {
+        for (int j = iterator; j < iterator + obj_polyoffsets[i]; j += 3)
+        {
+            pidxo1 = 3 * obj_polysidxflat[j];
+            pidxo2 = 3 * obj_polysidxflat[j + 1];
+            pidxo3 = 3 * obj_polysidxflat[j + 2];
+
+            KDN::Triangle* t = new KDN::Triangle(
+                obj_verts[pidxo1],
+                obj_verts[pidxo1 + 1],
+                obj_verts[pidxo1 + 2],
+                obj_verts[pidxo2],
+                obj_verts[pidxo2 + 1],
+                obj_verts[pidxo2 + 2],
+                obj_verts[pidxo3],
+                obj_verts[pidxo3 + 1],
+                obj_verts[pidxo3 + 2],
+                obj_norms[pidxo1],
+                obj_norms[pidxo1 + 1],
+                obj_norms[pidxo1 + 2],
+                obj_norms[pidxo2],
+                obj_norms[pidxo2 + 1],
+                obj_norms[pidxo2 + 2],
+                obj_norms[pidxo3],
+                obj_norms[pidxo3 + 1],
+                obj_norms[pidxo3 + 2]);
+
+            triangles.push_back(t);
+        }
+
+        iterator += obj_polyoffsets[i];
+    }
+
+    return triangles;
+}
 
 void Scene::loadObj(string filepath, string mtlpath)
 {
@@ -535,5 +808,41 @@ void Scene::loadObj(string filepath, string mtlpath)
     */
 
     hasObj = true;
+
+
+
+
+    // This section assembles a KD tree and flattens out the entire tree
+    // as an array of KDnodes, an array of Triangles and an array of 
+    // indices with the triangle offsets so that we can traverse the tree
+    // non recursively.
+    std::vector<KDN::Triangle*> triangles = getTrianglesFromScene_();
+
+    KDT = new KDtree(triangles);
+    KDT->rootNode->updateBbox();
+    KDT->split(3);
+
+    // Accessing kd nodes and triangles as a flat structure
+    // This is to help recursion removal for CUDA
+    // THANK YOU NVIDIA for this...
+    getKDnodes_(KDT->rootNode, nodes);
+    std::sort(nodes.begin(), nodes.end(), nodeComparator_);
+
+    // flattened triangles data
+    offsets = cacheTriangles_(nodes, Triangles);
+    numTriangles = Triangles.size();
+    newTriangles = new KDN::Triangle[numTriangles];
+    memcpy(newTriangles, Triangles.data(), sizeof(KDN::Triangle)*numTriangles);
+
+    getKDnodesLoop_(KDT->rootNode, nodesLoop);
+    std::sort(nodesLoop.begin(), nodesLoop.end());
+
+    getKDnodesLoopDeref_(KDT->rootNode, nodesLoopDeref);
+    std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
+
+    // flattened nodes data
+    numNodes = nodesLoopDeref.size();
+    newNodes = new KDN::KDnode[numNodes];
+    memcpy(newNodes, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
     
 }
