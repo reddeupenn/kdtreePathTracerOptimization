@@ -378,7 +378,16 @@ vector<int> Scene::cacheTriangles_(KDN::KDnode* nodes, int numNodes, vector<KDN:
             }
         }
 
-        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+        /*
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles 
+            << " bbox: [" << nodes[i].bbox.mins[0] << " "
+                         << nodes[i].bbox.mins[1] << " "
+                         << nodes[i].bbox.mins[2] << "] ["
+                         << nodes[i].bbox.maxs[0] << " "
+                         << nodes[i].bbox.maxs[1] << " "
+                         << nodes[i].bbox.maxs[2] << "]"
+            << std::endl;
+        */
     }
 
 
@@ -412,7 +421,25 @@ vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode*> nodes, vector<KDN::
             }
         }
 
-        std::cout << "node: " << nodes[i]->ID << " numtris: " << numTriangles << std::endl;
+        /*
+        std::cout << "node: " << nodes[i]->ID << " numtris: " << numTriangles
+                              << " bbox: [" << nodes[i]->bbox.mins[0] << " "
+                              << nodes[i]->bbox.mins[1] << " "
+                              << nodes[i]->bbox.mins[2] << "] ["
+                              << nodes[i]->bbox.maxs[0] << " "
+                              << nodes[i]->bbox.maxs[1] << " "
+                              << nodes[i]->bbox.maxs[2] << "]"
+                              << std::endl;
+        */
+        /*
+        std::cout << nodes[i]->bbox.mins[0] << " "
+            << nodes[i]->bbox.mins[1] << " "
+            << nodes[i]->bbox.mins[2] << " "
+            << nodes[i]->bbox.maxs[0] << " "
+            << nodes[i]->bbox.maxs[1] << " "
+            << nodes[i]->bbox.maxs[2]
+            << std::endl;
+        */
     }
 
 
@@ -445,8 +472,16 @@ vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode> nodes, vector<KDN::T
                 newTriangles.push_back(nodes[i].triangles[j][0]);
             }
         }
-
-        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles << std::endl;
+        /*
+        std::cout << "node: " << nodes[i].ID << " numtris: " << numTriangles
+            << " bbox: [" << nodes[i].bbox.mins[0] << " "
+            << nodes[i].bbox.mins[1] << " "
+            << nodes[i].bbox.mins[2] << "] ["
+            << nodes[i].bbox.maxs[0] << " "
+            << nodes[i].bbox.maxs[1] << " "
+            << nodes[i].bbox.maxs[2] << "]"
+            << std::endl;
+        */
     }
 
 
@@ -520,6 +555,7 @@ std::vector<KDN::Triangle*> Scene::getTrianglesFromScene_(void)
                 obj_norms[pidxo3 + 1],
                 obj_norms[pidxo3 + 2]);
 
+            t->mtlIdx = i;
             triangles.push_back(t);
         }
 
@@ -810,7 +846,7 @@ void Scene::loadObj(string filepath, string mtlpath)
     hasObj = true;
 
 
-
+    printf("loading triangles\n");
 
     // This section assembles a KD tree and flattens out the entire tree
     // as an array of KDnodes, an array of Triangles and an array of 

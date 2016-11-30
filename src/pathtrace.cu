@@ -1141,6 +1141,256 @@ __global__ void pathTraceOneBounce(
 
 
 // pathTraceOneBounce handles ray intersections, generate intersections for shading, 
+// and scatter new ray. You might want to call scatterRay from interactions.h
+__global__ void pathTraceOneBounceKDfix(
+    int depth
+    , int iter
+    , int num_paths
+    , PathSegment * pathSegments
+    , Geom * geoms
+    , int geoms_size
+    , Material * materials
+    , int material_size
+    , ShadeableIntersection * intersections
+    , float softness
+    , KDN::Triangle* triangles
+    , int numTriangles
+    , KDN::KDnode* nodes
+    , int numNodes
+    , int* obj_materialOffsets
+    , int hasobj
+    )
+{
+    int path_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (path_index < num_paths)
+    {
+        //path_index = pathSegments[path_index].pixelIndex;
+        PathSegment pathSegment = pathSegments[path_index];
+        //printf("\nO1");
+        if (pathSegments[path_index].remainingBounces>0)
+        {
+            float t;
+            glm::vec3 intersect_point;
+            glm::vec3 normal;
+            float t_min = FLT_MAX;
+            int hit_geom_index = -1;
+            bool outside = true;
+
+            glm::vec3 tmp_intersect;
+            glm::vec3 tmp_normal;
+
+            glm::vec3 hit;
+            glm::vec3 norm;
+            glm::vec3 bary;
+            glm::vec3 v1;
+            glm::vec3 v2;
+            glm::vec3 v3;
+            glm::vec3 n1;
+            glm::vec3 n2;
+            glm::vec3 n3;
+            int pidxo1 = 0;
+            int pidxo2 = 0;
+            int pidxo3 = 0;
+            bool intersected = false;
+            bool obj_intersect = false;
+            // naive parse through global geoms
+            //printf("\nO2");
+
+            int objMaterialIdx = -1;
+            for (int i = 0; i < geoms_size; i++)
+            {
+                Geom & geom = geoms[i];
+
+                if (geom.type == CUBE)
+                {
+                    t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+                else if (geom.type == SPHERE)
+                {
+                    t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+
+                // Compute the minimum t from the intersection tests to determine what
+                // scene geometry object was hit first.
+                if (t > 0.0f && t_min > t)
+                {
+                    t_min = t;
+                    hit_geom_index = i;
+                    intersect_point = tmp_intersect;
+                    normal = tmp_normal;
+                }
+            }
+
+            objMaterialIdx = -1;
+            int iterator = 0;
+            if (hasobj)
+            {
+
+
+                //
+                //
+                if (numNodes != 0)
+                {
+                    bool nodeIDs[1000] = { false };
+                    int currID = nodeIDs[nodes[0].ID];
+                    float dist = -1.0;
+
+                    // get the root node
+                    for (int i = 0; i < numNodes; i++)
+                    {
+                        if (nodes[i].parentID == -1)
+                        {
+                            currID = nodes[i].ID;
+                            break;
+                        }
+                    }
+
+                    bool hitGeom = false;
+                    float boxdist = -1.0f;
+                    bary.z = FLT_MAX;
+                    while (true)
+                    {
+                        if (currID == -1)
+                            break;
+
+                        // check if it intersects the bounds
+                        //printf("1\n");
+                        hitGeom = intersectAABB(pathSegment.ray, nodes[currID].bbox, dist);
+                        //printf("2\n");
+
+                        if (hitGeom == false && dist > bary.z)
+                        {
+                            nodeIDs[nodes[currID].ID] = true;
+                            currID = nodes[currID].parentID;
+                        }
+                        else
+                        {
+                            if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                                currID = nodes[currID].leftID;
+                            else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                                currID = nodes[currID].rightID;
+                            else if (nodeIDs[nodes[currID].ID] == false)
+                            {
+                                //printf("NODE LOOP: %d\n", nodes[currID].ID);
+                                nodeIDs[nodes[currID].ID] = true;
+
+                                int size = nodes[currID].triIdSize;
+                                if (size > 0)
+                                {
+                                    int start = nodes[currID].triIdStart;
+                                    int end = start + size;
+                                    for (int i = start; i < end; i++)
+                                    {
+                                        //KDN::Triangle t = triangles[i];
+
+                                        glm::vec3 v1(triangles[i].x1, triangles[i].y1, triangles[i].z1);
+                                        glm::vec3 v2(triangles[i].x2, triangles[i].y2, triangles[i].z2);
+                                        glm::vec3 v3(triangles[i].x3, triangles[i].y3, triangles[i].z3);
+
+                                        glm::vec3 n1(triangles[i].nx1, triangles[i].ny1, triangles[i].nz1);
+                                        glm::vec3 n2(triangles[i].nx2, triangles[i].ny2, triangles[i].nz2);
+                                        glm::vec3 n3(triangles[i].nx3, triangles[i].ny3, triangles[i].nz3);
+
+                                        //bary(0.0f, 0.0f, 0.0f);
+                                        bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
+                                                                                     pathSegment.ray.direction,
+                                                                                     v1, v2, v3, bary);
+
+                                        if (intersected)
+                                        {
+                                            objMaterialIdx = triangles[i].mtlIdx + material_size-1;
+                                            //(1 - bary.x - bary.y); bary.x; bary.y
+                                            //printf("material id: %d\n", triangles[i].mtlIdx);
+                                            hit = pathSegment.ray.origin + pathSegment.ray.direction* bary.z;// (bary2.x * v1 + bary2.y * v2 + bary2.z * v3);
+                                            norm = -glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                            //norm(glm::normalize(n1));
+                                            hit += norm*0.0001f;
+
+
+                                            t = glm::distance(pathSegment.ray.origin, hit);
+
+                                            if (t > 0.0f && t_min > t)
+                                            {
+                                                t_min = t;
+                                                hit_geom_index = obj_materialOffsets[triangles[i].mtlIdx];
+                                                intersect_point = hit;
+                                                normal = norm;
+                                                tmp_intersect = hit;
+                                                tmp_normal = normal;
+                                                obj_intersect = true;
+                                                intersections[path_index].t = t;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                                currID = nodes[currID].parentID;
+                        }
+                    }
+                }
+            }
+
+
+
+            if (hit_geom_index == -1)
+            {
+                intersections[path_index].t = -1.0f;
+            }
+            else
+            {
+
+                // updating rays
+                //thrust::default_random_engine rng = makeSeededRandomEngine(iter, depth, depth); // WAY TOO COOL!
+                thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
+
+
+                if (obj_intersect)
+                {
+                    pathSegments[path_index].materialIdHit = objMaterialIdx;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[objMaterialIdx],
+                               rng,
+                               softness);
+                }
+                else
+                {
+                    pathSegments[path_index].materialIdHit = geoms[hit_geom_index].materialid;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[geoms[hit_geom_index].materialid],
+                               rng,
+                               softness);
+                }
+
+
+                if (obj_intersect)
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = objMaterialIdx; // test material
+                    intersections[path_index].surfaceNormal = normal;
+                }
+                else
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+                    intersections[path_index].surfaceNormal = normal;
+                }
+            }
+        }
+    }
+}
+
+
+// pathTraceOneBounce handles ray intersections, generate intersections for shading, 
 // This is the KD-tree implementation
 __global__ void pathTraceOneBounceKD(
     int depth
@@ -1217,6 +1467,7 @@ __global__ void pathTraceOneBounceKD(
 
                 // Compute the minimum t from the intersection tests to determine what
                 // scene geometry object was hit first.
+                
                 if (t > 0.0f && t_min > t)
                 {
                     t_min = t;
@@ -1224,6 +1475,7 @@ __global__ void pathTraceOneBounceKD(
                     intersect_point = tmp_intersect;
                     normal = tmp_normal;
                 }
+                
             }
 
             //printf("tracekd 4\n");
@@ -1269,7 +1521,7 @@ __global__ void pathTraceOneBounceKD(
 
                 dist = -1.0f;
                 norm = glm::vec3(0.0f);
-                bool hit = false;
+                bool hitGeom = false;
 
                 Ray r = pathSegment.ray;
 
@@ -1304,10 +1556,10 @@ __global__ void pathTraceOneBounceKD(
 
                         // check if it intersects the bounds
                         //printf("1\n");
-                        bool hit = intersectAABB(r, nodes[currID].bbox, dist);
+                        hitGeom = intersectAABB(r, nodes[currID].bbox, dist);
                         //printf("2\n");
 
-                        if (hit == false)
+                        if (hitGeom == false)
                         {
                             nodeIDs[nodes[currID].ID] = true;
                             currID = nodes[currID].parentID;
@@ -1361,25 +1613,23 @@ __global__ void pathTraceOneBounceKD(
                                             //       currID);
 
 
-                                                norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
-                                                //norm(glm::normalize(n1));
-                                                intersect += norm*0.0001f;
+                                            norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                            //norm(glm::normalize(n1));
+                                            //intersect += norm*0.0001f;
 
-
-                                                t = dist;
                                                 
-                                                if (t > 0.0f && t_min > t)
-                                                {
-                                                    t_min = t;
-                                                    hit_geom_index = 0;// obj_materialOffsets[i];
-                                                    intersect_point = intersect;
-                                                    tmp_intersect = intersect;
-                                                    tmp_normal = norm;
-                                                    obj_intersect = true;
-                                                    intersections[path_index].t = t;
-                                                }
+                                            t = dist;
                                                 
-
+                                            if (t > 0.0f && t_min > t)
+                                            {
+                                                t_min = t;
+                                                hit_geom_index = 0;// obj_materialOffsets[i];
+                                                intersect_point = intersect;
+                                                tmp_intersect = intersect;
+                                                tmp_normal = norm;//glm::vec3(0.0f, 1.0f, 0.0f);
+                                                //obj_intersect = true;
+                                                intersections[path_index].t = t;
+                                            }
                                         }
                                     }
                                 }
@@ -1392,7 +1642,7 @@ __global__ void pathTraceOneBounceKD(
 
                 //printf("AFTER INTERSECT\n");
                 //printf("tracekd 5.1\n");
-                if (dist != -1 && dist < t_min)
+                if (hit_geom_index != -1)
                 {
                     hit_geom_index = 0;
                     obj_intersect = true;
@@ -1461,7 +1711,7 @@ __global__ void pathTraceOneBounceKD(
                 if (obj_intersect)// && false)
                 {
                     intersections[path_index].t = t_min;
-                    intersections[path_index].materialId = objMaterialIdx; // test material
+                    intersections[path_index].materialId = geoms[0].materialid; //objMaterialIdx; // test material
                     intersections[path_index].surfaceNormal = normal;
                 }
                 else
@@ -1799,7 +2049,9 @@ void pathtrace(uchar4 *pbo,
         ///*
         //printf("numNodes = %d\n", hst_scene->numNodes);
         //printf("numTriangles = %d\n", hst_scene->numTriangles);
-        pathTraceOneBounceKD << <numblocksPathSegmentTracing, blockSize1d >> > (
+
+        
+        pathTraceOneBounceKDfix << <numblocksPathSegmentTracing, blockSize1d >> > (
             depth
             , iter
             , num_paths
@@ -1814,6 +2066,7 @@ void pathtrace(uchar4 *pbo,
             , hst_scene->numTriangles
             , kd_nodes
             , hst_scene->numNodes
+            , obj_materialOffsets
             , hst_scene->hasObj);
         checkCUDAError("trace one bounce kd");
         //*/

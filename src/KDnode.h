@@ -55,6 +55,8 @@ namespace KDN
         float mins[3];
         float maxs[3];
 
+        int mtlIdx;
+
         Triangle()
         {
             x1 = 0.0; y1 = 0.0; z1 = 0.0;
@@ -70,6 +72,7 @@ namespace KDN
             center[2] = 0.0;
             computeBounds();
             nodeID = -1;
+            mtlIdx = -1;
         }
 
         Triangle(float X1, float Y1, float Z1,
@@ -87,6 +90,7 @@ namespace KDN
             computeCentroid();
             computeBounds();
             nodeID = -1;
+            mtlIdx = -1;
         }
 
         Triangle(float X1, float Y1, float Z1,
@@ -107,6 +111,7 @@ namespace KDN
             computeCentroid();
             computeBounds();
             nodeID = -1;
+            mtlIdx = -1;
         }
 
         ~Triangle() {}
