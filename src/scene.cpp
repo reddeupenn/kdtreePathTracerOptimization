@@ -25,6 +25,12 @@ Scene::Scene(string filename) {
     obj_materialOffsets = NULL;
     hasObj = false;
 
+    // kd
+    newNodes = NULL;
+    newTriangles = NULL;
+    newNodesBare = NULL;
+    newTrianglesBare = NULL;
+
     polyidxcount = 0;
 
     cout << "Reading scene from " << filename << " ..." << endl;
@@ -39,7 +45,7 @@ Scene::Scene(string filename) {
         string line;
         utilityCore::safeGetline(fp_in, line);
         if (!line.empty()) {
-            vector<string> tokens = utilityCore::tokenizeString(line);
+            std::vector<string> tokens = utilityCore::tokenizeString(line);
             if (strcmp(tokens[0].c_str(), "MATERIAL") == 0) {
                 loadMaterial(tokens[1]);
                 cout << " " << endl;
@@ -99,8 +105,14 @@ Scene::~Scene()
 
     polyidxcount = 0;
 
-    delete[] newNodes;
-    delete[] newTriangles;
+    if (newNodes != NULL)
+        delete[] newNodes;
+    if (newTriangles != NULL)
+        delete[] newTriangles;
+    if (newNodesBare != NULL)
+        delete[] newNodesBare;
+    if (newTrianglesBare != NULL)
+        delete[] newTrianglesBare;
 }
 
 int Scene::loadGeom(string objectid) {
@@ -128,7 +140,7 @@ int Scene::loadGeom(string objectid) {
         //link material
         utilityCore::safeGetline(fp_in, line);
         if (!line.empty() && fp_in.good()) {
-            vector<string> tokens = utilityCore::tokenizeString(line);
+            std::vector<string> tokens = utilityCore::tokenizeString(line);
             newGeom.materialid = atoi(tokens[1].c_str());
             cout << "Connecting Geom " << objectid << " to Material " << newGeom.materialid << "..." << endl;
         }
@@ -136,7 +148,7 @@ int Scene::loadGeom(string objectid) {
         //load transformations
         utilityCore::safeGetline(fp_in, line);
         while (!line.empty() && fp_in.good()) {
-            vector<string> tokens = utilityCore::tokenizeString(line);
+            std::vector<string> tokens = utilityCore::tokenizeString(line);
 
             //load tranformations
             if (strcmp(tokens[0].c_str(), "TRANS") == 0) {
@@ -170,7 +182,7 @@ int Scene::loadCamera() {
     for (int i = 0; i < 5; i++) {
         string line;
         utilityCore::safeGetline(fp_in, line);
-        vector<string> tokens = utilityCore::tokenizeString(line);
+        std::vector<string> tokens = utilityCore::tokenizeString(line);
         if (strcmp(tokens[0].c_str(), "RES") == 0) {
             camera.resolution.x = atoi(tokens[1].c_str());
             camera.resolution.y = atoi(tokens[2].c_str());
@@ -188,7 +200,7 @@ int Scene::loadCamera() {
     string line;
     utilityCore::safeGetline(fp_in, line);
     while (!line.empty() && fp_in.good()) {
-        vector<string> tokens = utilityCore::tokenizeString(line);
+        std::vector<string> tokens = utilityCore::tokenizeString(line);
         if (strcmp(tokens[0].c_str(), "EYE") == 0) {
             camera.position = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
         } else if (strcmp(tokens[0].c_str(), "LOOKAT") == 0) {
@@ -234,7 +246,7 @@ int Scene::loadMaterial(string materialid) {
         for (int i = 0; i < 7; i++) {
             string line;
             utilityCore::safeGetline(fp_in, line);
-            vector<string> tokens = utilityCore::tokenizeString(line);
+            std::vector<string> tokens = utilityCore::tokenizeString(line);
             if (strcmp(tokens[0].c_str(), "RGB") == 0) {
                 glm::vec3 color( atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()) );
                 newMaterial.color = color;
@@ -260,7 +272,7 @@ int Scene::loadMaterial(string materialid) {
 
 
 
-void Scene::getKDnodes_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+void Scene::getKDnodes_(KDN::KDnode* root, std::vector<KDN::KDnode*>& nodes)
 {
     if (root != NULL)
     {
@@ -270,7 +282,7 @@ void Scene::getKDnodes_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
-void Scene::getKDnodesLoop_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
+void Scene::getKDnodesLoop_(KDN::KDnode* root, std::vector<KDN::KDnode*>& nodes)
 {
     KDN::KDnode* currNode = root;
     while (true)
@@ -310,7 +322,7 @@ void Scene::getKDnodesLoop_(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
-void Scene::getKDnodesLoopDeref_(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
+void Scene::getKDnodesLoopDeref_(KDN::KDnode* root, std::vector<KDN::KDnode>& nodes)
 {
     KDN::KDnode* currNode = root;
 
@@ -351,11 +363,11 @@ void Scene::getKDnodesLoopDeref_(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
     }
 }
 
-vector<int> Scene::cacheTriangles_(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
+std::vector<int> Scene::cacheTriangles_(KDN::KDnode* nodes, int numNodes, std::vector<KDN::Triangle>& newTriangles)
 {
 
     int triCount = 0;
-    vector<int> offsets;
+    std::vector<int> offsets;
 
     if (numNodes == 0)
         return offsets;
@@ -394,11 +406,11 @@ vector<int> Scene::cacheTriangles_(KDN::KDnode* nodes, int numNodes, vector<KDN:
     return offsets;
 }
 
-vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
+std::vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode*> nodes, std::vector<KDN::Triangle>& newTriangles)
 {
 
     int triCount = 0;
-    vector<int> offsets;
+    std::vector<int> offsets;
 
     if (nodes.size() == 0)
         return offsets;
@@ -446,11 +458,10 @@ vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode*> nodes, vector<KDN::
     return offsets;
 }
 
-vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
+std::vector<int> Scene::cacheTriangles_(std::vector<KDN::KDnode> nodes, std::vector<KDN::Triangle>& newTriangles)
 {
-
     int triCount = 0;
-    vector<int> offsets;
+    std::vector<int> offsets;
 
     if (nodes.size() == 0)
         return offsets;
@@ -519,7 +530,7 @@ bool nodeComparator_(const void* a, const void* b)
 
 std::vector<KDN::Triangle*> Scene::getTrianglesFromScene_(void)
 {
-    vector<KDN::Triangle*> triangles;
+    std::vector<KDN::Triangle*> triangles;
 
     int iterator = 0;
 
@@ -545,15 +556,15 @@ std::vector<KDN::Triangle*> Scene::getTrianglesFromScene_(void)
                 obj_verts[pidxo3],
                 obj_verts[pidxo3 + 1],
                 obj_verts[pidxo3 + 2],
-                obj_norms[pidxo1],
-                obj_norms[pidxo1 + 1],
-                obj_norms[pidxo1 + 2],
-                obj_norms[pidxo2],
-                obj_norms[pidxo2 + 1],
-                obj_norms[pidxo2 + 2],
-                obj_norms[pidxo3],
-                obj_norms[pidxo3 + 1],
-                obj_norms[pidxo3 + 2]);
+                -obj_norms[pidxo1],
+                -obj_norms[pidxo1 + 1],
+                -obj_norms[pidxo1 + 2],
+                -obj_norms[pidxo2],
+                -obj_norms[pidxo2 + 1],
+                -obj_norms[pidxo2 + 2],
+                -obj_norms[pidxo3],
+                -obj_norms[pidxo3 + 1],
+                -obj_norms[pidxo3 + 2]);
 
             t->mtlIdx = i;
             triangles.push_back(t);
@@ -856,7 +867,9 @@ void Scene::loadObj(string filepath, string mtlpath)
 
     KDT = new KDtree(triangles);
     KDT->rootNode->updateBbox();
-    KDT->split(3);
+
+    int splitDepth = floor(log10((double)triangles.size())*0.5);
+    KDT->split(splitDepth);
 
     // Accessing kd nodes and triangles as a flat structure
     // This is to help recursion removal for CUDA
@@ -880,5 +893,74 @@ void Scene::loadObj(string filepath, string mtlpath)
     numNodes = nodesLoopDeref.size();
     newNodes = new KDN::KDnode[numNodes];
     memcpy(newNodes, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
+
+    // cache reduced data
+    cacheNodesBare();
+    cacheTrianglesBare();
     
+}
+
+void Scene::cacheNodesBare()
+{
+    if (newNodes == NULL)
+        return;
+
+    if (newNodesBare != NULL)
+        delete[] newNodesBare;
+    
+    newNodesBare = new KDN::NodeBare[numNodes];
+    
+    for (int i = 0; i < numNodes; i++)
+    {
+        newNodesBare[i].axis = newNodes[i].axis;
+        newNodesBare[i].ID = newNodes[i].ID;
+        newNodesBare[i].parentID = newNodes[i].parentID;
+        newNodesBare[i].leftID = newNodes[i].leftID;
+        newNodesBare[i].rightID = newNodes[i].rightID;
+        newNodesBare[i].mins[0] = newNodes[i].bbox.mins[0];
+        newNodesBare[i].mins[1] = newNodes[i].bbox.mins[1];
+        newNodesBare[i].mins[2] = newNodes[i].bbox.mins[2];
+        newNodesBare[i].maxs[0] = newNodes[i].bbox.maxs[0];
+        newNodesBare[i].maxs[1] = newNodes[i].bbox.maxs[1];
+        newNodesBare[i].maxs[2] = newNodes[i].bbox.maxs[2];
+        newNodesBare[i].triIdSize = newNodes[i].triIdSize;
+        newNodesBare[i].triIdStart = newNodes[i].triIdStart;
+        newNodesBare[i].splitPos = newNodes[i].splitPos;
+    }
+}
+
+void Scene::cacheTrianglesBare()
+{
+    if (newTriangles == NULL)
+        return;
+
+    if (newTrianglesBare != NULL)
+        delete[] newTrianglesBare;
+
+    newTrianglesBare = new KDN::TriBare[numTriangles];
+
+    for (int i = 0; i < numTriangles; i++)
+    {
+        newTrianglesBare[i].x1 = newTriangles[i].x1;
+        newTrianglesBare[i].x2 = newTriangles[i].x2;
+        newTrianglesBare[i].x3 = newTriangles[i].x3;
+        newTrianglesBare[i].y1 = newTriangles[i].y1;
+        newTrianglesBare[i].y2 = newTriangles[i].y2;
+        newTrianglesBare[i].y3 = newTriangles[i].y3;
+        newTrianglesBare[i].z1 = newTriangles[i].z1;
+        newTrianglesBare[i].z2 = newTriangles[i].z2;
+        newTrianglesBare[i].z3 = newTriangles[i].z3;
+
+        newTrianglesBare[i].nx1 = -newTriangles[i].nx1;
+        newTrianglesBare[i].nx2 = -newTriangles[i].nx2;
+        newTrianglesBare[i].nx3 = -newTriangles[i].nx3;
+        newTrianglesBare[i].ny1 = -newTriangles[i].ny1;
+        newTrianglesBare[i].ny2 = -newTriangles[i].ny2;
+        newTrianglesBare[i].ny3 = -newTriangles[i].ny3;
+        newTrianglesBare[i].nz1 = -newTriangles[i].nz1;
+        newTrianglesBare[i].nz2 = -newTriangles[i].nz2;
+        newTrianglesBare[i].nz3 = -newTriangles[i].nz3;
+
+        newTrianglesBare[i].mtlIdx = newTriangles[i].mtlIdx;
+    }
 }

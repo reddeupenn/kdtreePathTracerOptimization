@@ -139,20 +139,32 @@ float getFresnelVal(glm::vec3 I, glm::vec3 N, float ior)
 // fast simple bbox intersection by direction vector positioning
 __host__ __device__
 float intersectBbox(glm::vec3 origin, glm::vec3 direction, glm::vec3 mincoords, glm::vec3 maxcoords)
-{  
-    float minx = (mincoords.x - origin.x) / direction.x;
-    float maxx = (maxcoords.x - origin.x) / direction.x;
-    float miny = (mincoords.y - origin.y) / direction.y;
-    float maxy = (maxcoords.y - origin.y) / direction.y;
-    float minz = (mincoords.z - origin.z) / direction.z;
-    float maxz = (maxcoords.z - origin.z) / direction.z;
-    float imax = glm::max(glm::max(glm::min(minx, maxx), glm::min(miny, maxy)), glm::min(minz, maxz));
-    float imin = glm::min(glm::min(glm::max(minx, maxx), glm::max(miny, maxy)), glm::max(minx, maxz));
-    
-    if (imin < 0 || imax > imin)
-        return -1.0f;
-    else
-        return imax;
+{
+
+    bool result = false;
+    glm::vec3 invdir(1.0f / direction.x,
+                     1.0f / direction.y,
+                     1.0f / direction.z);
+
+    float v1 = (mincoords[0] - origin.x)*invdir.x;
+    float v2 = (maxcoords[0] - origin.x)*invdir.x;
+    float v3 = (mincoords[1] - origin.y)*invdir.y;
+    float v4 = (maxcoords[1] - origin.y)*invdir.y;
+    float v5 = (mincoords[2] - origin.z)*invdir.z;
+    float v6 = (maxcoords[2] - origin.z)*invdir.z;
+
+    float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
+    float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
+
+    if (dmax < 0)
+    {
+        return dmax;
+    }
+    if (dmin > dmax)
+    {
+        return dmax;
+    }
+    return dmin;
 }
 
 

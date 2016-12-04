@@ -194,6 +194,42 @@ __host__ __device__ bool intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
     return result;
 }
 
+__host__ __device__ bool intersectAABBarrays(Ray r, float* mins, float* maxs, float& dist)
+{
+
+    bool result = false;
+    glm::vec3 invdir(1.0f / r.direction.x,
+                     1.0f / r.direction.y,
+                     1.0f / r.direction.z);
+
+    float v1 = (mins[0] - r.origin.x)*invdir.x;
+    float v2 = (maxs[0] - r.origin.x)*invdir.x;
+    float v3 = (mins[1] - r.origin.y)*invdir.y;
+    float v4 = (maxs[1] - r.origin.y)*invdir.y;
+    float v5 = (mins[2] - r.origin.z)*invdir.z;
+    float v6 = (maxs[2] - r.origin.z)*invdir.z;
+
+    float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
+    float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
+
+    if (dmax < 0)
+    {
+        dist = dmax;
+        result = false;
+        return result;
+    }
+    if (dmin > dmax)
+    {
+        dist = dmax;
+        result = false;
+        return result;
+    }
+    dist = dmin;
+    result = true;
+    return result;
+}
+
+
 // loop version of copies tree traversal
 __host__ __device__ //__global__
 glm::vec4 intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triangle* triangles, int numTriangles)

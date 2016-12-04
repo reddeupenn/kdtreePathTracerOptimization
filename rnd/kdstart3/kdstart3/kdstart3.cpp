@@ -9,6 +9,7 @@
 #include <random>
 #include <stdio.h>
 #include <vector>
+#include <stack>
 
 #include <string>
 #include <fstream>
@@ -25,7 +26,11 @@
 using namespace std;
 
 
-
+struct nodetest
+{
+    int start = 0;
+    int end = 0;
+};
 
 float frand(float scale)
 {
@@ -316,6 +321,21 @@ int main()
     //deleteTree(KD->getRoot());
 
 
+
+    stack<nodetest> nodeStack;
+
+    nodetest a;
+    nodetest b;
+    nodetest x;
+    int start;
+    int end;
+    a.start = 1; a.end = 2;
+    b.start = 3; b.end = 4;
+
+    nodeStack.push(a);
+    nodeStack.push(b);
+
+    nodeStack.pop();
 
     _CrtDumpMemoryLeaks();
     return 0;

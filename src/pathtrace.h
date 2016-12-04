@@ -3,8 +3,8 @@
 #include <vector>
 #include "scene.h"
 
-void pathtraceInit(Scene *scene);
-void pathtraceFree(Scene *scene);
+void pathtraceInit(Scene *scene,bool enablekd);
+void pathtraceFree(Scene *scene, bool enablekd);
 void pathtrace(uchar4 *pbo, int frame, 
                int iteration, 
                float focalLength, 
@@ -14,4 +14,5 @@ void pathtrace(uchar4 *pbo, int frame,
                float softness, 
                bool enableSss,
                bool testingmode,
-               bool compaction);
+               bool compaction,
+               bool enablekd);

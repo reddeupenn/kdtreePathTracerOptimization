@@ -61,6 +61,7 @@ static float dofDistance = 6.0f;
 
 static bool TESTINGMODE = false;
 static bool COMPACTION = true;
+static bool ENABLEKD = true;
 
 
 /*
@@ -755,7 +756,6 @@ bool _nodeComparator(const void* a, const void* b)
 int main(int argc, char** argv) {
     startTimeString = currentTimeString();
 
-
     if (argc > 1)
     {
         // test mode for kdtree
@@ -1190,8 +1190,8 @@ void runCuda() {
     // No data is moved (Win & Linux). When mapped to CUDA, OpenGL should not use this buffer
 
     if (iteration == 0) {
-        pathtraceFree(scene);
-        pathtraceInit(scene);
+        pathtraceFree(scene, ENABLEKD);
+        pathtraceInit(scene, ENABLEKD);
     }
 
     if (iteration < renderState->iterations) {
@@ -1211,13 +1211,14 @@ void runCuda() {
                   softness,
                   SSS,
                   TESTINGMODE,
-                  COMPACTION);
+                  COMPACTION,
+                  ENABLEKD);
 
         // unmap buffer object
         cudaGLUnmapBufferObject(pbo);
     } else {
         saveImage();
-        pathtraceFree(scene);
+        pathtraceFree(scene, ENABLEKD);
         cudaDeviceReset();
         exit(EXIT_SUCCESS);
     }
@@ -1319,6 +1320,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         else if (key == GLFW_KEY_T){
             TESTINGMODE = !TESTINGMODE;
             printf("\nTESTING = %s", TESTINGMODE == 0 ? "disabled" : "enabled");
+            camchanged = true;
+        }
+        else if (key == GLFW_KEY_K){
+            ENABLEKD = !ENABLEKD;
+            printf("\nENABLEKD = %s", ENABLEKD == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
     }

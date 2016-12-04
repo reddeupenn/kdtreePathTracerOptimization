@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <vector>
+#include <stack>
 
 namespace KDN
 {
@@ -35,6 +36,40 @@ namespace KDN
         }
 
         ~Point() {}
+    };
+
+    // these structs are compressed versions of the classes
+    struct TriBare
+    {
+        float x1, x2, x3,
+            y1, y2, y3,
+            z1, z2, z3;
+
+        float nx1, nx2, nx3,
+            ny1, ny2, ny3,
+            nz1, nz2, nz3;
+
+        int mtlIdx;
+    };
+
+    struct NodeBare
+    {
+        int axis;
+        float splitPos = 0.0;
+
+        float mins[3];
+        float maxs[3];
+
+        int ID;
+        int parentID;
+        int leftID;
+        int rightID;
+
+        int triIdStart;
+        int triIdSize;
+
+        float tmin=0.0;
+        float tmax=0.0;
     };
 
     // triangle storage for maintaining triangle information
@@ -266,6 +301,7 @@ namespace KDN
     {
     public:
         int axis;
+        float splitPos;
         bool visited;
         KDnode* parent;
         KDnode* left;
@@ -301,4 +337,24 @@ namespace KDN
         void updateBbox(KDnode* n);
         bool operator<(const KDnode& rhs);
     };
+
+
+    class NodeStack
+    {
+    public:
+        std::stack<KDnode> nodes;
+        void push(KDnode);
+        void pop();
+        KDnode top();
+    };
+
+    class NodeStackBare
+    {
+    public:
+        std::stack<NodeBare> nodes;
+        void push(NodeBare);
+        void pop();
+        NodeBare top();
+    };
 }
+

@@ -4,7 +4,7 @@ newmtl trianglesmat
 
 Ns 100.0
 d 1.0
-illum 2
+illum 1
 Kd 0.89 0.64 0.46
 Ka 0.89 0.64 0.46
 Ks 0.0 0.0 0.0
