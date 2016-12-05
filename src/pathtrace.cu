@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <stdlib.h>
-#include <crtdbg.h>
 
 #include <random>
 #include <vector>
@@ -30,7 +29,6 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <Shlobj.h>
 
 #include <glm/gtx/intersect.hpp>
 
@@ -110,7 +108,7 @@ static PathSegment * dev_paths = NULL;
 static PathSegment * dev_paths_cache = NULL;
 static ShadeableIntersection * dev_intersections = NULL;
 
-static const int STACK_SIZE = 1000;
+static const int STACK_SIZE = 2000;
 
 
 struct is_zero_bounce
@@ -1012,7 +1010,7 @@ __global__ void pathTraceOneBounce(
                                   obj_polysbboxes[i + 4] + 0.01, 
                                   obj_polysbboxes[i + 5] + 0.01));
 
-                    if (T > -1.0f)
+                    //if (T > -1.0f)
                     {
                         for (int j = iterator; j < iterator + obj_polyoffsets[i]; j += 3)
                         {
@@ -1482,10 +1480,10 @@ int& path_index)
             // check if it intersects the bounds
             //printf("1\n");
 
-            hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
-
-            if (hitGeom == false && node->parentID == -1)
+            if (hitGeom == false && node->parentID == -1 && nodeIDs[node->ID] == true)
                 break;
+
+            hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
 
             if (nodeIDs[currID] == true)
             {
@@ -1498,7 +1496,7 @@ int& path_index)
             else
             {
                 //hitGeom = intersectAABB(pathSegment.ray, node->bbox, dist);
-                hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
+                //hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
 
                 if (hitGeom == false && node->parentID == -1)
                     break;
@@ -1506,7 +1504,7 @@ int& path_index)
             //printf("2\n");
 
 
-            if (hitGeom == false && dist > bary.z)
+            if (hitGeom == false || dist > bary.z)
             {
                 nodeIDs[node->ID] = true;
                 nodeIDs[node->leftID] = true;
@@ -1582,184 +1580,26 @@ int& path_index)
     }
 }
 
-// pathTraceOneBounce handles ray intersections, generate intersections for shading, 
-// and scatter new ray. You might want to call scatterRay from interactions.h
-__global__ void pathTraceOneBounceKDbare(
-    int depth
-    , int iter
-    , int num_paths
-    , PathSegment * pathSegments
-    , Geom * geoms
-    , int geoms_size
-    , Material * materials
-    , int material_size
-    , ShadeableIntersection * intersections
-    , float softness
-    , KDN::TriBare* triangles
-    , int numTriangles
-    , KDN::NodeBare* nodes
-    , int numNodes
-    , int* obj_materialOffsets
-    , int hasobj
-    )
-{
-    int path_index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (path_index < num_paths)
-    {
-        //path_index = pathSegments[path_index].pixelIndex;
-        PathSegment pathSegment = pathSegments[path_index];
-        //printf("\nO1");
-        if (pathSegments[path_index].remainingBounces>0)
-        {
-            float t;
-            glm::vec3 intersect_point;
-            glm::vec3 normal;
-            float t_min = FLT_MAX;
-            int hit_geom_index = -1;
-            bool outside = true;
-
-            glm::vec3 tmp_intersect;
-            glm::vec3 tmp_normal;
-
-            glm::vec3 hit;
-            glm::vec3 norm;
-            glm::vec3 bary;
-            glm::vec3 v1;
-            glm::vec3 v2;
-            glm::vec3 v3;
-            glm::vec3 n1;
-            glm::vec3 n2;
-            glm::vec3 n3;
-            int pidxo1 = 0;
-            int pidxo2 = 0;
-            int pidxo3 = 0;
-            bool intersected = false;
-            bool obj_intersect = false;
-            // naive parse through global geoms
-            //printf("\nO2");
-
-            int objMaterialIdx = -1;
-            for (int i = 0; i < geoms_size; i++)
-            {
-                Geom & geom = geoms[i];
-
-                if (geom.type == CUBE)
-                {
-                    t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
-                }
-                else if (geom.type == SPHERE)
-                {
-                    t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
-                }
-
-                // Compute the minimum t from the intersection tests to determine what
-                // scene geometry object was hit first.
-                if (t > 0.0f && t_min > t)
-                {
-                    t_min = t;
-                    hit_geom_index = i;
-                    intersect_point = tmp_intersect;
-                    normal = tmp_normal;
-                }
-            }
-
-            objMaterialIdx = -1;
-            int iterator = 0;
-            if (hasobj)
-            {
-
-                traverseKDbare(nodes, numNodes, t,
-                                pathSegment, triangles,
-                                bary, objMaterialIdx,
-                                material_size, hit,
-                                norm, t_min,
-                                hit_geom_index, intersect_point,
-                                normal, tmp_intersect,
-                                tmp_normal, obj_intersect,
-                                intersections, obj_materialOffsets,
-                                path_index);
-                
-            }
-
-
-
-            if (hit_geom_index == -1)
-            {
-                intersections[path_index].t = -1.0f;
-            }
-            else
-            {
-
-                // updating rays
-                //thrust::default_random_engine rng = makeSeededRandomEngine(iter, depth, depth); // WAY TOO COOL!
-                thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
-
-
-                if (obj_intersect)
-                {
-                    pathSegments[path_index].materialIdHit = objMaterialIdx;
-
-                    scatterRay(pathSegments[path_index].ray,
-                               pathSegments[path_index].color,
-                               intersect_point,
-                               normal,
-                               materials[objMaterialIdx],
-                               rng,
-                               softness);
-                }
-                else
-                {
-                    pathSegments[path_index].materialIdHit = geoms[hit_geom_index].materialid;
-
-                    scatterRay(pathSegments[path_index].ray,
-                               pathSegments[path_index].color,
-                               intersect_point,
-                               normal,
-                               materials[geoms[hit_geom_index].materialid],
-                               rng,
-                               softness);
-                }
-
-
-                if (obj_intersect)
-                {
-                    intersections[path_index].t = t_min;
-                    intersections[path_index].materialId = objMaterialIdx; // test material
-                    intersections[path_index].surfaceNormal = normal;
-                }
-                else
-                {
-                    intersections[path_index].t = t_min;
-                    intersections[path_index].materialId = geoms[hit_geom_index].materialid;
-                    intersections[path_index].surfaceNormal = normal;
-                }
-            }
-        }
-    }
-}
-
-
-__host__ __device__ 
+__host__ __device__
 void traverseKDshort(KDN::NodeBare* nodes, int numNodes,
-                float& t,
-                PathSegment pathSegment,
-                KDN::TriBare* triangles,
-                glm::vec3& bary,
-                int& objMaterialIdx,
-                int& material_size,
-                glm::vec3& hit,
-                glm::vec3& norm,
-                float& t_min,
-                int& hit_geom_index,
-                glm::vec3& intersect_point,
-                glm::vec3& normal,
-                glm::vec3& tmp_intersect,
-                glm::vec3& tmp_normal,
-                bool& obj_intersect,
-                ShadeableIntersection* intersections,
-                int* obj_materialOffsets,
-                int& path_index)
+float& t,
+PathSegment pathSegment,
+KDN::TriBare* triangles,
+glm::vec3& bary,
+int& objMaterialIdx,
+int& material_size,
+glm::vec3& hit,
+glm::vec3& norm,
+float& t_min,
+int& hit_geom_index,
+glm::vec3& intersect_point,
+glm::vec3& normal,
+glm::vec3& tmp_intersect,
+glm::vec3& tmp_normal,
+bool& obj_intersect,
+ShadeableIntersection* intersections,
+int* obj_materialOffsets,
+int& path_index)
 {
     //printf("numnodes = %d\n", numNodes);
 
@@ -1864,7 +1704,7 @@ void traverseKDshort(KDN::NodeBare* nodes, int numNodes,
                     stack[top].node = second;
                     stack[top].tmin = tSplit;
                     stack[top].tmax = tMax;
-                 }
+                }
                 else
                 {
                     //printf("bogus");
@@ -1878,7 +1718,7 @@ void traverseKDshort(KDN::NodeBare* nodes, int numNodes,
             if (pushdown)
                 root = node;
 
-            
+
             bboxintersect = intersectAABBarrays(pathSegment.ray, node->mins, node->maxs, dist);
             if (bboxintersect)
             {
@@ -1992,8 +1832,8 @@ int& path_index)
     //
     //
     glm::vec3 origin = pathSegment.ray.origin;
-    glm::vec3 invDirection(1.0f / pathSegment.ray.direction[0], 
-                           1.0f / pathSegment.ray.direction[1], 
+    glm::vec3 invDirection(1.0f / pathSegment.ray.direction[0],
+                           1.0f / pathSegment.ray.direction[1],
                            1.0f / pathSegment.ray.direction[2]);
 
     float tmax = FLT_MAX;
@@ -2001,9 +1841,9 @@ int& path_index)
     bool notFullyTraversed = true;
 
 
-    while (notFullyTraversed) 
+    while (notFullyTraversed)
     {
-        if (node->triIdSize != 0) 
+        if (node->triIdSize != 0)
         {
             //test all primitives inside the leaf
             float dist = 0.0f;
@@ -2062,11 +1902,11 @@ int& path_index)
             }
 
             //test if leaf + empty stack => return
-            if (top==-1) 
+            if (top == -1)
             {
                 notFullyTraversed = false;
             }
-            else 
+            else
             {
                 //pop all stack
                 origin = stack[top].origin;
@@ -2075,21 +1915,21 @@ int& path_index)
                 top--;
             }
         }
-        else 
+        else
         {
             //get axis of node and its split plane
             const int axis = node->axis;
             const float plane = node->splitPos;
 
             //test if ray is not parallel to plane
-            if ((fabs(pathSegment.ray.direction[axis]) > EPSILON)) 
+            if ((fabs(pathSegment.ray.direction[axis]) > EPSILON))
             {
                 const float t = (plane - origin[axis]) * invDirection[axis];
 
                 //case of the ray intersecting the plane, then test both childs
                 if (0.0f < t && t < tmax) {
                     //traverse near first, then far. Set tmax = t for near
-                    
+
                     //push only far child onto stack
                     top++;
                     stack[top].origin[0] = origin[0] + pathSegment.ray.direction[0] * t;
@@ -2107,6 +1947,346 @@ int& path_index)
         }
     }
 }
+
+
+// pathTraceOneBounce handles ray intersections, generate intersections for shading, 
+// and scatter new ray. You might want to call scatterRay from interactions.h
+__global__ void pathTraceOneBounceKDbare(
+    int depth
+    , int iter
+    , int num_paths
+    , PathSegment * pathSegments
+    , Geom * geoms
+    , int geoms_size
+    , Material * materials
+    , int material_size
+    , ShadeableIntersection * intersections
+    , float softness
+    , KDN::TriBare* triangles
+    , int numTriangles
+    , KDN::NodeBare* nodes
+    , int numNodes
+    , int* obj_materialOffsets
+    , int hasobj
+    )
+{
+    int path_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (path_index < num_paths)
+    {
+        //path_index = pathSegments[path_index].pixelIndex;
+        PathSegment pathSegment = pathSegments[path_index];
+        //printf("\nO1");
+        if (pathSegments[path_index].remainingBounces>0)
+        {
+            float t;
+            glm::vec3 intersect_point;
+            glm::vec3 normal;
+            float t_min = FLT_MAX;
+            int hit_geom_index = -1;
+            bool outside = true;
+
+            glm::vec3 tmp_intersect;
+            glm::vec3 tmp_normal;
+
+            glm::vec3 hit;
+            glm::vec3 norm;
+            glm::vec3 bary;
+            glm::vec3 v1;
+            glm::vec3 v2;
+            glm::vec3 v3;
+            glm::vec3 n1;
+            glm::vec3 n2;
+            glm::vec3 n3;
+            int pidxo1 = 0;
+            int pidxo2 = 0;
+            int pidxo3 = 0;
+            bool intersected = false;
+            bool obj_intersect = false;
+            // naive parse through global geoms
+            //printf("\nO2");
+
+            int objMaterialIdx = -1;
+            for (int i = 0; i < geoms_size; i++)
+            {
+                Geom & geom = geoms[i];
+
+                if (geom.type == CUBE)
+                {
+                    t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+                else if (geom.type == SPHERE)
+                {
+                    t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+
+                // Compute the minimum t from the intersection tests to determine what
+                // scene geometry object was hit first.
+                if (t > 0.0f && t_min > t)
+                {
+                    t_min = t;
+                    hit_geom_index = i;
+                    intersect_point = tmp_intersect;
+                    normal = tmp_normal;
+                }
+            }
+
+            objMaterialIdx = -1;
+            int iterator = 0;
+            if (hasobj)
+            {
+                
+                traverseKDbare(nodes, numNodes, t,
+                                pathSegment, triangles,
+                                bary, objMaterialIdx,
+                                material_size, hit,
+                                norm, t_min,
+                                hit_geom_index, intersect_point,
+                                normal, tmp_intersect,
+                                tmp_normal, obj_intersect,
+                                intersections, obj_materialOffsets,
+                                path_index);
+                
+                /*
+                traverseKDshort(nodes, numNodes, t,
+                                pathSegment, triangles,
+                                bary, objMaterialIdx,
+                                material_size, hit,
+                                norm, t_min,
+                                hit_geom_index, intersect_point,
+                                normal, tmp_intersect,
+                                tmp_normal, obj_intersect,
+                                intersections, obj_materialOffsets,
+                                path_index);
+                */
+            }
+
+            if (hit_geom_index == -1)
+            {
+                intersections[path_index].t = -1.0f;
+            }
+            else
+            {
+
+                // updating rays
+                //thrust::default_random_engine rng = makeSeededRandomEngine(iter, depth, depth); // WAY TOO COOL!
+                thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
+
+
+                if (obj_intersect)
+                {
+                    pathSegments[path_index].materialIdHit = objMaterialIdx;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[objMaterialIdx],
+                               rng,
+                               softness);
+                }
+                else
+                {
+                    pathSegments[path_index].materialIdHit = geoms[hit_geom_index].materialid;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[geoms[hit_geom_index].materialid],
+                               rng,
+                               softness);
+                }
+
+
+                if (obj_intersect)
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = objMaterialIdx; // test material
+                    intersections[path_index].surfaceNormal = normal;
+                }
+                else
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+                    intersections[path_index].surfaceNormal = normal;
+                }
+            }
+        }
+    }
+}
+
+// pathTraceOneBounce handles ray intersections, generate intersections for shading, 
+// and scatter new ray. You might want to call scatterRay from interactions.h
+__global__ void pathTraceOneBounceKDbareBoxes(
+    int depth
+    , int iter
+    , int num_paths
+    , PathSegment * pathSegments
+    , Geom * geoms
+    , int geoms_size
+    , Material * materials
+    , int material_size
+    , ShadeableIntersection * intersections
+    , float softness
+    , KDN::TriBare* triangles
+    , int numTriangles
+    , KDN::NodeBare* nodes
+    , int numNodes
+    , int* obj_materialOffsets
+    , int hasobj
+    )
+{
+    int path_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (path_index < num_paths)
+    {
+        //path_index = pathSegments[path_index].pixelIndex;
+        PathSegment pathSegment = pathSegments[path_index];
+        //printf("\nO1");
+        if (pathSegments[path_index].remainingBounces>0)
+        {
+            float t;
+            glm::vec3 intersect_point;
+            glm::vec3 normal;
+            float t_min = FLT_MAX;
+            int hit_geom_index = -1;
+            bool outside = true;
+
+            glm::vec3 tmp_intersect;
+            glm::vec3 tmp_normal;
+
+            glm::vec3 hit;
+            glm::vec3 norm;
+            glm::vec3 bary;
+            glm::vec3 v1;
+            glm::vec3 v2;
+            glm::vec3 v3;
+            glm::vec3 n1;
+            glm::vec3 n2;
+            glm::vec3 n3;
+            int pidxo1 = 0;
+            int pidxo2 = 0;
+            int pidxo3 = 0;
+            bool intersected = false;
+            bool obj_intersect = false;
+            // naive parse through global geoms
+            //printf("\nO2");
+
+            int objMaterialIdx = -1;
+            for (int i = 0; i < geoms_size; i++)
+            {
+                Geom & geom = geoms[i];
+
+                if (geom.type == CUBE)
+                {
+                    t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+                else if (geom.type == SPHERE)
+                {
+                    t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                }
+
+                // Compute the minimum t from the intersection tests to determine what
+                // scene geometry object was hit first.
+                if (t > 0.0f && t_min > t)
+                {
+                    t_min = t;
+                    hit_geom_index = i;
+                    intersect_point = tmp_intersect;
+                    normal = tmp_normal;
+                }
+            }
+
+            objMaterialIdx = -1;
+            int iterator = 0;
+            if (hasobj)
+            {
+                /*
+                traverseKDbare(nodes, numNodes, t,
+                pathSegment, triangles,
+                bary, objMaterialIdx,
+                material_size, hit,
+                norm, t_min,
+                hit_geom_index, intersect_point,
+                normal, tmp_intersect,
+                tmp_normal, obj_intersect,
+                intersections, obj_materialOffsets,
+                path_index);
+                */
+
+                for (int i = 0; i < numNodes; i++)
+                {
+                    t = boxIntersectionTestBox(nodes[i].mins, nodes[i].maxs, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+                    // Compute the minimum t from the intersection tests to determine what
+                    // scene geometry object was hit first.
+                    if (t > 0.0f && t_min > t)
+                    {
+                        t_min = t;
+                        hit_geom_index = geoms_size;
+                        intersect_point = tmp_intersect;
+                        normal = tmp_normal;
+                        obj_intersect = true;
+                        objMaterialIdx = material_size - 1;
+                    }
+                }
+            }
+
+            if (hit_geom_index == -1)
+            {
+                intersections[path_index].t = -1.0f;
+            }
+            else
+            {
+
+                // updating rays
+                //thrust::default_random_engine rng = makeSeededRandomEngine(iter, depth, depth); // WAY TOO COOL!
+                thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
+
+
+                if (obj_intersect)
+                {
+                    pathSegments[path_index].materialIdHit = objMaterialIdx;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[objMaterialIdx],
+                               rng,
+                               softness);
+                }
+                else
+                {
+                    pathSegments[path_index].materialIdHit = geoms[hit_geom_index].materialid;
+
+                    scatterRay(pathSegments[path_index].ray,
+                               pathSegments[path_index].color,
+                               intersect_point,
+                               normal,
+                               materials[geoms[hit_geom_index].materialid],
+                               rng,
+                               softness);
+                }
+
+
+                if (obj_intersect)
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = objMaterialIdx; // test material
+                    intersections[path_index].surfaceNormal = normal;
+                }
+                else
+                {
+                    intersections[path_index].t = t_min;
+                    intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+                    intersections[path_index].surfaceNormal = normal;
+                }
+            }
+        }
+    }
+}
+
 
 
 
@@ -2945,7 +3125,8 @@ void pathtrace(uchar4 *pbo,
                bool enableSss,
                bool testingmode,
                bool compaction,
-               bool enablekd) {
+               bool enablekd,
+               bool vizkd) {
     const int traceDepth = hst_scene->state.traceDepth;
     const Camera &cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
@@ -3087,7 +3268,6 @@ void pathtrace(uchar4 *pbo,
                 , obj_materialOffsets
                 , hst_scene->hasObj);
             checkCUDAError("trace one bounce");
-
             ///*
             //printf("numNodes = %d\n", hst_scene->numNodes);
             //printf("numTriangles = %d\n", hst_scene->numTriangles);
@@ -3095,83 +3275,52 @@ void pathtrace(uchar4 *pbo,
         }
         else
         {
-            /*
-            pathTraceOneBounceKDfix << <numblocksPathSegmentTracing, blockSize1d >> > (
-                depth
-                , iter
-                , num_paths
-                , dev_paths
-                , dev_geoms
-                , hst_scene->geoms.size()
-                , dev_materials
-                , hst_scene->materials.size()
-                , dev_intersections
-                , softness
-                , kd_triangles
-                , hst_scene->numTriangles
-                , kd_nodes
-                , hst_scene->numNodes
-                , obj_materialOffsets
-                , hst_scene->hasObj);
-            checkCUDAError("trace one bounce kd");
-            */
-
-            ///*
-            pathTraceOneBounceKDbare << <numblocksPathSegmentTracing, blockSize1d >> > (
-                depth
-                , iter
-                , num_paths
-                , dev_paths
-                , dev_geoms
-                , hst_scene->geoms.size()
-                , dev_materials
-                , hst_scene->materials.size()
-                , dev_intersections
-                , softness
-                , kd_trianglesBare
-                , hst_scene->numTriangles
-                , kd_nodesBare
-                , hst_scene->numNodes
-                , obj_materialOffsets
-                , hst_scene->hasObj);
-            checkCUDAError("trace one bounce kd");
-            //*/
-            /*
-            pathTraceOneBounceKDbareShortStack << <numblocksPathSegmentTracing, blockSize1d >> > (
-                depth
-                , iter
-                , num_paths
-                , dev_paths
-                , dev_geoms
-                , hst_scene->geoms.size()
-                , dev_materials
-                , hst_scene->materials.size()
-                , dev_intersections
-                , softness
-                , kd_trianglesBare
-                , hst_scene->numTriangles
-                , kd_nodesBare
-                , hst_scene->numNodes
-                , obj_materialOffsets
-                , hst_scene->hasObj);
-            checkCUDAError("trace one bounce kd");
-            */
-
+            if (vizkd)
+            {
+                pathTraceOneBounceKDbareBoxes << <numblocksPathSegmentTracing, blockSize1d >> > (
+                    depth
+                    , iter
+                    , num_paths
+                    , dev_paths
+                    , dev_geoms
+                    , hst_scene->geoms.size()
+                    , dev_materials
+                    , hst_scene->materials.size()
+                    , dev_intersections
+                    , softness
+                    , kd_trianglesBare
+                    , hst_scene->numTriangles
+                    , kd_nodesBare
+                    , hst_scene->numNodes
+                    , obj_materialOffsets
+                    , hst_scene->hasObj);
+                checkCUDAError("trace one bounce kd");
+                //cudaEventQuery(0);
+            }
+            else
+            {
+                pathTraceOneBounceKDbare << <numblocksPathSegmentTracing, blockSize1d >> > (
+                    depth
+                    , iter
+                    , num_paths
+                    , dev_paths
+                    , dev_geoms
+                    , hst_scene->geoms.size()
+                    , dev_materials
+                    , hst_scene->materials.size()
+                    , dev_intersections
+                    , softness
+                    , kd_trianglesBare
+                    , hst_scene->numTriangles
+                    , kd_nodesBare
+                    , hst_scene->numNodes
+                    , obj_materialOffsets
+                    , hst_scene->hasObj);
+                checkCUDAError("trace one bounce kd");
+                //cudaEventQuery(0);
+            }
         }
-        
-        /*
-        pathTraceOneBounce2 << <numblocksPathSegmentTracing, blockSize1d >> > (
-            depth
-            , iter
-            , num_paths
-            , dev_paths
-            , dev_geoms
-            , hst_scene->geoms.size()
-            , dev_materials
-            , hst_scene->materials.size()
-            , dev_intersections);
-        checkCUDAError("trace one bounce2");
-        */
+
         cudaDeviceSynchronize();
         depth++;
 
@@ -3185,15 +3334,6 @@ void pathtrace(uchar4 *pbo,
             cudaEventDestroy(startPathTraceOneBounce);
             cudaEventDestroy(stopPathTraceOneBounce);
         }
-
-        // TODO:
-        // --- Shading Stage ---
-        // Shade path segments based on intersections and generate new rays by
-        // evaluating the BSDF.
-        // Start off with just a big kernel that handles all the different
-        // materials you have in the scenefile.
-        // TODO: compare between directly shading the path segments and shading
-        // path segments that have been reshuffled to be contiguous in memory.
 
         if (testingmode)
         {

@@ -1,27 +1,19 @@
 #include "main.h"
 #include "preview.h"
-#include <cstring>
 #include <algorithm>
 
-#include "objmesh.h"
-
-
-#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
-#include <crtdbg.h>
-
 #include <random>
 #include <stdio.h>
 #include <vector>
-
 #include <string>
 #include <fstream>
+#include <chrono>
 
 #include <iostream>
 #include <iomanip>
 
-#include <Shlobj.h>
-
+#include "objmesh.h"
 #include "KDnode.h"
 #include "KDtree.h"
 
@@ -41,9 +33,9 @@ static float dtheta = 0, dphi = 0;
 static glm::vec3 cammove;
 
 static bool rayCaching = true;// false;
-static bool antialias = true;
+static bool antialias = false;// true;
 static float softness = 0.0f;
-static bool SSS = true;
+static bool SSS = false;
 
 float zoom, theta, phi;
 glm::vec3 cameraPosition;
@@ -62,6 +54,7 @@ static float dofDistance = 6.0f;
 static bool TESTINGMODE = false;
 static bool COMPACTION = true;
 static bool ENABLEKD = true;
+static bool VIZKD = false;
 
 
 /*
@@ -1137,8 +1130,6 @@ int main(int argc, char** argv) {
 
     //delete objmesh;
 
-    _CrtDumpMemoryLeaks();
-
     return 0;
 }
 
@@ -1199,20 +1190,33 @@ void runCuda() {
         iteration++;
         cudaGLMapBufferObject((void**)&pbo_dptr, pbo);
 
+        std::chrono::system_clock::time_point start;
+        if (TESTINGMODE)
+            start = std::chrono::system_clock::now();
+
         // execute the kernel
         int frame = 0;
-        pathtrace(pbo_dptr, 
-                  frame, 
-                  iteration, 
-                  dofDistance, 
-                  dofAngle, 
-                  rayCaching, 
-                  antialias, 
+        pathtrace(pbo_dptr,
+                  frame,
+                  iteration,
+                  dofDistance,
+                  dofAngle,
+                  rayCaching,
+                  antialias,
                   softness,
                   SSS,
-                  TESTINGMODE,
+                  false, // TESTINGMODE,
                   COMPACTION,
-                  ENABLEKD);
+                  ENABLEKD,
+                  VIZKD);
+
+
+        if (TESTINGMODE)
+        {
+            std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>
+                (std::chrono::system_clock::now() - start);
+            printf("time elapsed: %f ms\n", duration.count());
+        }
 
         // unmap buffer object
         cudaGLUnmapBufferObject(pbo);
@@ -1325,6 +1329,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         else if (key == GLFW_KEY_K){
             ENABLEKD = !ENABLEKD;
             printf("\nENABLEKD = %s", ENABLEKD == 0 ? "disabled" : "enabled");
+            camchanged = true;
+        }
+        else if (key == GLFW_KEY_V){
+            VIZKD = !VIZKD;
+            printf("\\nVIZKD = %s", VIZKD == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
     }

@@ -868,8 +868,8 @@ void Scene::loadObj(string filepath, string mtlpath)
     KDT = new KDtree(triangles);
     KDT->rootNode->updateBbox();
 
-    int splitDepth = floor(log10((double)triangles.size())*0.5);
-    KDT->split(splitDepth);
+    int splitDepth = ceil(log10((double)triangles.size())*1);
+    KDT->split(/*splitDepth*/12);
 
     // Accessing kd nodes and triangles as a flat structure
     // This is to help recursion removal for CUDA

@@ -3,9 +3,6 @@
 # 240 vertices
 # 80 primitives
 # Bounds: [-1, 0.0489434004, -1] to [1, 1.9510566, 1]
-
-mtllib data.mtl
-
 g 
 v 0 1 -1
 v 0 1.52573121 -0.850650787

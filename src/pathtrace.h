@@ -15,4 +15,5 @@ void pathtrace(uchar4 *pbo, int frame,
                bool enableSss,
                bool testingmode,
                bool compaction,
-               bool enablekd);
+               bool enablekd,
+               bool vizkd);
