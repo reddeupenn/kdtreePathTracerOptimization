@@ -628,28 +628,30 @@ void pathtraceInit(Scene *scene, bool enablekd) {
 
         if (enablekd == true)
         {
+            /*
             printf("size of:\n\ttriangle: %d\n\ttribare: %d\n\tnode: %d\n\tnodebare: %d\n", 
                    sizeof(KDN::Triangle),
                    sizeof(KDN::TriBare),
                    sizeof(KDN::KDnode),
                    sizeof(KDN::NodeBare));
+            */
 
-            printf("TOTAL NUM NODES = %d\n", scene->numNodes);
+            //printf("TOTAL NUM NODES = %d\n", scene->numNodes);
 
             // allocate KD data on the device
             //cudaMalloc((void**)&kd_nodes, scene->numNodes * sizeof(KDN::KDnode));
             //cudaMalloc((void**)&kd_triangles, scene->numTriangles * sizeof(KDN::Triangle));
-            printf("before allocating\n");
+            //printf("before allocating\n");
             cudaMalloc((void**)&kd_nodesBare, scene->numNodes * sizeof(KDN::NodeBare));
             cudaMalloc((void**)&kd_trianglesBare, scene->numTriangles * sizeof(KDN::TriBare));
-            printf("after allocating\n");
+            //printf("after allocating\n");
             
             //cudaMemcpy(kd_nodes, scene->newNodes, scene->numNodes * sizeof(KDN::KDnode), cudaMemcpyHostToDevice);
             //cudaMemcpy(kd_triangles, scene->newTriangles, scene->numTriangles * sizeof(KDN::Triangle), cudaMemcpyHostToDevice);
-            printf("before copying\n");
+            //printf("before copying\n");
             cudaMemcpy(kd_nodesBare, scene->newNodesBare, scene->numNodes * sizeof(KDN::NodeBare), cudaMemcpyHostToDevice);
             cudaMemcpy(kd_trianglesBare, scene->newTrianglesBare, scene->numTriangles * sizeof(KDN::TriBare), cudaMemcpyHostToDevice);
-            printf("after copying\n");
+            //printf("after copying\n");
         }
         else
         {
@@ -1503,7 +1505,7 @@ int& path_index)
             }
             //printf("2\n");
 
-
+            // if the distance is greater than the last poly hit
             if (hitGeom == false || dist > bary.z)
             {
                 nodeIDs[node->ID] = true;
@@ -1579,6 +1581,242 @@ int& path_index)
         }
     }
 }
+
+
+__host__ __device__
+void traverseKDbareShortHybrid(KDN::NodeBare* nodes, int numNodes,
+float& t,
+PathSegment pathSegment,
+KDN::TriBare* triangles,
+glm::vec3& bary,
+int& objMaterialIdx,
+int& material_size,
+glm::vec3& hit,
+glm::vec3& norm,
+float& t_min,
+int& hit_geom_index,
+glm::vec3& intersect_point,
+glm::vec3& normal,
+glm::vec3& tmp_intersect,
+glm::vec3& tmp_normal,
+bool& obj_intersect,
+ShadeableIntersection* intersections,
+int* obj_materialOffsets,
+int& path_index)
+{
+    //
+    //
+    if (numNodes != 0)
+    {
+        bool nodeIDs[STACK_SIZE] = { false };
+        int currID = nodeIDs[nodes[0].ID];
+        float dist = -1.0;
+
+        // get the root node
+        for (int i = 0; i < numNodes; i++)
+        {
+            if (nodes[i].parentID == -1)
+            {
+                currID = nodes[i].ID;
+                break;
+            }
+        }
+
+        KDN::NodeBare* node = &(nodes[currID]);
+
+        int axis;
+        float tSplit;
+        bool hitGeom = false;
+        float boxdist = -1.0f;
+        bary.z = FLT_MAX;
+        while (true)
+        {
+            if (currID == -1)
+                break;
+
+            node = &(nodes[currID]);
+            // check if it intersects the bounds
+            //printf("1\n");
+
+            if (hitGeom == false && node->parentID == -1 && nodeIDs[node->ID] == true)
+                break;
+
+            hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
+
+            if (nodeIDs[currID] == true)
+            {
+                nodeIDs[node->ID] = true;
+                nodeIDs[node->leftID] = true;
+                nodeIDs[node->rightID] = true;
+                currID = node->parentID;
+                continue;
+            }
+            else
+            {
+                //hitGeom = intersectAABB(pathSegment.ray, node->bbox, dist);
+                //hitGeom = intersectAABBarrays(pathSegment.ray, nodes[currID].mins, nodes[currID].maxs, dist);
+
+                if (hitGeom == false && node->parentID == -1)
+                    break;
+            }
+            //printf("2\n");
+
+            // if the distance is greater than the last poly hit
+            if (hitGeom == false || dist > bary.z)
+            {
+                nodeIDs[node->ID] = true;
+                nodeIDs[node->leftID] = true;
+                nodeIDs[node->rightID] = true;
+                currID = node->parentID;
+            }
+            else
+            {
+                axis = node->axis;
+                //tSplit = (node->splitPos - pathSegment.ray.origin[axis]) / pathSegment.ray.direction[axis];
+
+                if (pathSegment.ray.direction[axis] > 0.0f)// && nodes[node->leftID].splitPos < tSplit)
+                {
+                    // left side first
+                    if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                        currID = node->leftID;
+                    else if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                        currID = node->rightID;
+                    else if (nodeIDs[node->ID] == false)
+                    {
+                        //printf("NODE LOOP: %d\n", nodes[currID].ID);
+                        nodeIDs[node->ID] = true;
+
+                        int size = node->triIdSize;
+                        if (size > 0)
+                        {
+                            int start = node->triIdStart;
+                            int end = start + size;
+                            for (int i = start; i < end; i++)
+                            {
+                                KDN::TriBare* T = &(triangles[i]);
+
+                                glm::vec3 v1(T->x1, T->y1, T->z1);
+                                glm::vec3 v2(T->x2, T->y2, T->z2);
+                                glm::vec3 v3(T->x3, T->y3, T->z3);
+
+                                //bary(0.0f, 0.0f, 0.0f);
+                                bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
+                                                                             pathSegment.ray.direction,
+                                                                             v1, v2, v3, bary);
+
+                                if (intersected)
+                                {
+                                    // skip other side
+                                    nodeIDs[nodes[nodeIDs[node->parentID]].rightID] = true;
+
+                                    glm::vec3 n1(T->nx1, T->ny1, T->nz1);
+                                    glm::vec3 n2(T->nx2, T->ny2, T->nz2);
+                                    glm::vec3 n3(T->nx3, T->ny3, T->nz3);
+
+                                    objMaterialIdx = triangles[i].mtlIdx + material_size - 1;
+                                    //(1 - bary.x - bary.y); bary.x; bary.y
+                                    //printf("material id: %d\n", triangles[i].mtlIdx);
+                                    hit = pathSegment.ray.origin + pathSegment.ray.direction* bary.z;// (bary2.x * v1 + bary2.y * v2 + bary2.z * v3);
+                                    norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                    //norm(glm::normalize(n1));
+                                    hit += norm*0.0001f;
+
+
+                                    t = glm::distance(pathSegment.ray.origin, hit);
+
+                                    if (t > 0.0f && t_min > t)
+                                    {
+                                        t_min = t;
+                                        hit_geom_index = obj_materialOffsets[T->mtlIdx];
+                                        intersect_point = hit;
+                                        normal = norm;
+                                        tmp_intersect = hit;
+                                        tmp_normal = normal;
+                                        obj_intersect = true;
+                                        intersections[path_index].t = t;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                        currID = node->parentID;
+                }
+                else
+                {
+                    // right side first
+                    if (nodes[currID].rightID != -1 && nodeIDs[nodes[currID].rightID] != true)
+                        currID = node->rightID;
+                    else if (nodes[currID].leftID != -1 && nodeIDs[nodes[currID].leftID] != true)
+                        currID = node->leftID;
+                    else if (nodeIDs[node->ID] == false)
+                    {
+                        //printf("NODE LOOP: %d\n", nodes[currID].ID);
+                        nodeIDs[node->ID] = true;
+
+                        int size = node->triIdSize;
+                        if (size > 0)
+                        {
+                            int start = node->triIdStart;
+                            int end = start + size;
+                            for (int i = start; i < end; i++)
+                            {
+                                KDN::TriBare* T = &(triangles[i]);
+
+                                glm::vec3 v1(T->x1, T->y1, T->z1);
+                                glm::vec3 v2(T->x2, T->y2, T->z2);
+                                glm::vec3 v3(T->x3, T->y3, T->z3);
+
+                                //bary(0.0f, 0.0f, 0.0f);
+                                bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
+                                                                             pathSegment.ray.direction,
+                                                                             v1, v2, v3, bary);
+
+                                if (intersected)
+                                {
+                                    // skip other side
+                                    nodeIDs[nodes[nodeIDs[node->parentID]].leftID] = true;
+
+                                    glm::vec3 n1(T->nx1, T->ny1, T->nz1);
+                                    glm::vec3 n2(T->nx2, T->ny2, T->nz2);
+                                    glm::vec3 n3(T->nx3, T->ny3, T->nz3);
+
+                                    objMaterialIdx = triangles[i].mtlIdx + material_size - 1;
+                                    //(1 - bary.x - bary.y); bary.x; bary.y
+                                    //printf("material id: %d\n", triangles[i].mtlIdx);
+                                    hit = pathSegment.ray.origin + pathSegment.ray.direction* bary.z;// (bary2.x * v1 + bary2.y * v2 + bary2.z * v3);
+                                    norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                    //norm(glm::normalize(n1));
+                                    hit += norm*0.0001f;
+
+
+                                    t = glm::distance(pathSegment.ray.origin, hit);
+
+                                    if (t > 0.0f && t_min > t)
+                                    {
+                                        t_min = t;
+                                        hit_geom_index = obj_materialOffsets[T->mtlIdx];
+                                        intersect_point = hit;
+                                        normal = norm;
+                                        tmp_intersect = hit;
+                                        tmp_normal = normal;
+                                        obj_intersect = true;
+                                        intersections[path_index].t = t;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                        currID = node->parentID;
+                }
+            }
+        }
+    }
+}
+
 
 __host__ __device__
 void traverseKDshort(KDN::NodeBare* nodes, int numNodes,
@@ -1755,7 +1993,7 @@ int& path_index)
 
                         t = glm::distance(pathSegment.ray.origin, hit);
 
-                        if (t > 0.0f && t_min > t)
+                        if (t > 0.0f || t_min > t)
                         {
                             tHit = min(tHit, t);
 
@@ -2035,7 +2273,7 @@ __global__ void pathTraceOneBounceKDbare(
             int iterator = 0;
             if (hasobj)
             {
-                
+                /*
                 traverseKDbare(nodes, numNodes, t,
                                 pathSegment, triangles,
                                 bary, objMaterialIdx,
@@ -2046,9 +2284,9 @@ __global__ void pathTraceOneBounceKDbare(
                                 tmp_normal, obj_intersect,
                                 intersections, obj_materialOffsets,
                                 path_index);
-                
-                /*
-                traverseKDshort(nodes, numNodes, t,
+                */
+                ///*
+                traverseKDbareShortHybrid(nodes, numNodes, t,
                                 pathSegment, triangles,
                                 bary, objMaterialIdx,
                                 material_size, hit,
@@ -2058,7 +2296,7 @@ __global__ void pathTraceOneBounceKDbare(
                                 tmp_normal, obj_intersect,
                                 intersections, obj_materialOffsets,
                                 path_index);
-                */
+                //*/
             }
 
             if (hit_geom_index == -1)
@@ -3181,12 +3419,12 @@ void pathtrace(uchar4 *pbo,
     float ms1 = 0.0;
     float ms2 = 0.0;
     float ms3 = 0.0;
-
+    /*
     if (testingmode)
     {
         cudaEventCreate(&startGenRayFromCam); cudaEventCreate(&stopGenRayFromCam); cudaEventRecord(startGenRayFromCam);
     }
-
+    */
     // cache rays
     if (cacherays)
     {
@@ -3202,6 +3440,7 @@ void pathtrace(uchar4 *pbo,
         generateRayFromCamera << <blocksPerGrid2d, blockSize2d >> >(cam, iter, traceDepth, dev_paths, focalLength, dofAngle, antialias);
         checkCUDAError("generate camera ray");
     }
+    /*
     if (testingmode)
     {
         cudaEventRecord(stopGenRayFromCam); cudaEventSynchronize(stopGenRayFromCam);
@@ -3212,7 +3451,7 @@ void pathtrace(uchar4 *pbo,
         cudaEventDestroy(startGenRayFromCam);
         cudaEventDestroy(stopGenRayFromCam);
     }
-
+    */
     int depth = 0;
     PathSegment* dev_path_end = dev_paths + pixelcount;
     int num_paths = dev_path_end - dev_paths;
@@ -3329,16 +3568,18 @@ void pathtrace(uchar4 *pbo,
             cudaEventRecord(stopPathTraceOneBounce); cudaEventSynchronize(stopPathTraceOneBounce);
             ms2 = 0;
             cudaEventElapsedTime(&ms2, startPathTraceOneBounce, stopPathTraceOneBounce);
-            //printf("\ngenerateRayFromCamera time = %f", ms2);
+            //printf("\npath trace time = %f", ms2);
             millisecondsPathTraceOneBounce += ms2;
             cudaEventDestroy(startPathTraceOneBounce);
             cudaEventDestroy(stopPathTraceOneBounce);
         }
 
+        /*
         if (testingmode)
         {
             cudaEventCreate(&startShadeMaterial); cudaEventCreate(&stopShadeMaterial); cudaEventRecord(startShadeMaterial);
         }
+        */
         shadeMaterial << <numblocksPathSegmentTracing, blockSize1d >> > (
             iter,
             num_paths,
@@ -3347,6 +3588,7 @@ void pathtrace(uchar4 *pbo,
             dev_materials,
             enableSss
             );
+        /*
         if (testingmode)
         {
             cudaEventRecord(stopShadeMaterial); cudaEventSynchronize(stopShadeMaterial);
@@ -3358,7 +3600,7 @@ void pathtrace(uchar4 *pbo,
             cudaEventDestroy(startGenRayFromCam);
             cudaEventDestroy(stopShadeMaterial);
         }
-
+        */
         //if (depth > 2)
         //if (num_paths <= 0)
         //    iterationComplete = true; // TODO: should be based off stream compaction results.
@@ -3393,19 +3635,19 @@ void pathtrace(uchar4 *pbo,
         if (num_paths <= 0 || depth > 7)
             iterationComplete = true; // TODO: should be based off stream compaction results.  
     }
-
+    
     if (testingmode)
     {
         //printf("\n\n-------- average times --------");
         //printf("\ngenerateRayFromCamera time = %f", millisecondsGenRayFromCam);
-        //printf("\n   pathTraceOneBounce time = %f", millisecondsPathTraceOneBounce / iter);
+        printf("\n   pathTraceOneBounce time = %f", millisecondsPathTraceOneBounce);// / iter);
         //printf("\n        shadeMaterial time = %f\n", millisecondsShadeMaterial / iter);
 
-        printf("\n[%f, %f, %f], ", millisecondsGenRayFromCam, 
-                                   millisecondsPathTraceOneBounce / iter, 
-                                   millisecondsShadeMaterial / iter);
+        //printf("\n[%f, %f, %f], ", millisecondsGenRayFromCam, 
+        //                           millisecondsPathTraceOneBounce / iter, 
+        //                           millisecondsShadeMaterial / iter);
     }
-
+    
 
     if (!compaction)
     {

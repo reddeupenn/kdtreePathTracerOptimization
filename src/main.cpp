@@ -1190,9 +1190,11 @@ void runCuda() {
         iteration++;
         cudaGLMapBufferObject((void**)&pbo_dptr, pbo);
 
+        /*
         std::chrono::system_clock::time_point start;
         if (TESTINGMODE)
             start = std::chrono::system_clock::now();
+        */
 
         // execute the kernel
         int frame = 0;
@@ -1205,18 +1207,19 @@ void runCuda() {
                   antialias,
                   softness,
                   SSS,
-                  false, // TESTINGMODE,
+                  TESTINGMODE,
                   COMPACTION,
                   ENABLEKD,
                   VIZKD);
 
-
+        /*
         if (TESTINGMODE)
         {
             std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>
                 (std::chrono::system_clock::now() - start);
             printf("time elapsed: %f ms\n", duration.count());
         }
+        */
 
         // unmap buffer object
         cudaGLUnmapBufferObject(pbo);
@@ -1260,26 +1263,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             dofAngle += 0.0004f;
             if (dofAngle > 0.03f)
                 dofAngle == 0.03f;
-            printf("\ndof blur = %f", dofAngle);
+            printf("dof blur = %f\n", dofAngle);
             camchanged = true;
         }
         else if (key == GLFW_KEY_MINUS){
             dofAngle -= 0.0004f;
             if (dofAngle < 0.0f)
                 dofAngle == 0.0f;
-            printf("\ndof blur = %f", dofAngle);
+            printf("dof blur = %f\n", dofAngle);
             camchanged = true;
         }
         else if (key == GLFW_KEY_LEFT_BRACKET){
             dofDistance -= 0.1f;
             if (dofDistance < 0.0f)
                 dofDistance == 0.0f;
-            printf("\nfocal point = %f", dofDistance);
+            printf("focal point = %f\n", dofDistance);
             camchanged = true;
         }
         else if (key == GLFW_KEY_RIGHT_BRACKET){
             dofDistance += 0.1f;
-            printf("\nfocal point = %f", dofDistance);
+            printf("focal point = %f\n", dofDistance);
             camchanged = true;
         }
         else if (key == GLFW_KEY_0){
@@ -1289,51 +1292,51 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         }
         else if (key == GLFW_KEY_C){
             rayCaching = !rayCaching;
-            printf("\ncaching = %d", rayCaching);
+            printf("caching = %d\n", rayCaching);
             camchanged = true;
         }
         else if (key == GLFW_KEY_A){
             antialias = !antialias;
-            printf("\nantialias = %d", antialias);
+            printf("antialias = %d\n", antialias);
             camchanged = true;
         }
         else if (key == GLFW_KEY_2){
             softness += 0.0000001f;
             if (softness > 1.0f)
                 softness = 1.0f;
-            printf("\nsoftness = %f", softness);
+            printf("softness = %f\n", softness);
             camchanged = true;
         }
         else if (key == GLFW_KEY_1){
             softness -= 0.0000001f;
             if (softness < 0.0f)
                 softness = 0.0f;
-            printf("\nsoftness = %f", softness);
+            printf("softness = %f\n", softness);
             camchanged = true;
         }
         else if (key == GLFW_KEY_X){
             SSS = !SSS;
-            printf("\nsubsurface scattering = %s", SSS == 0 ? "disabled" : "enabled");
+            printf("subsurface scattering = %s\n", SSS == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
         else if (key == GLFW_KEY_F){
             COMPACTION = !COMPACTION;
-            printf("\stream compaction = %s", COMPACTION == 0 ? "disabled" : "enabled");
+            printf("stream compaction = %s\n", COMPACTION == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
         else if (key == GLFW_KEY_T){
             TESTINGMODE = !TESTINGMODE;
-            printf("\nTESTING = %s", TESTINGMODE == 0 ? "disabled" : "enabled");
+            printf("TESTING = %s\n", TESTINGMODE == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
         else if (key == GLFW_KEY_K){
             ENABLEKD = !ENABLEKD;
-            printf("\nENABLEKD = %s", ENABLEKD == 0 ? "disabled" : "enabled");
+            printf("ENABLEKD = %s\n", ENABLEKD == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
         else if (key == GLFW_KEY_V){
             VIZKD = !VIZKD;
-            printf("\\nVIZKD = %s", VIZKD == 0 ? "disabled" : "enabled");
+            printf("\VIZKD = %s\n", VIZKD == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
     }

@@ -4,6 +4,15 @@
 #include <vector>
 #include <stack>
 
+
+// bare versions are for compressed data to reduce overhead
+// a change in data with significant impact:
+//size of:
+//      triangle: 116
+//      tribare : 76
+//      node : 136
+//      nodebare : 64
+
 namespace KDN
 {
     // Used to prototype.  Not used for triangle KD tree.
