@@ -37,6 +37,7 @@ static bool antialias = true;
 static float softness = 0.0f;
 static bool SSS = false;
 static bool USEBBOX = false;
+static bool SHORTSTACK = true;
 
 float zoom, theta, phi;
 glm::vec3 cameraPosition;
@@ -1212,7 +1213,8 @@ void runCuda() {
                   COMPACTION,
                   ENABLEKD,
                   VIZKD,
-                  USEBBOX);
+                  USEBBOX,
+                  SHORTSTACK);
 
         /*
         if (TESTINGMODE)
@@ -1344,6 +1346,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         else if (key == GLFW_KEY_B){
             USEBBOX = !USEBBOX;
             printf("USINGBBOX = %s\n", USEBBOX == 0 ? "disabled" : "enabled");
+            camchanged = true;
+        }
+        else if (key == GLFW_KEY_L){
+            SHORTSTACK = !SHORTSTACK;
+            printf("SHORTSTACK = %s\n", SHORTSTACK == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
     }

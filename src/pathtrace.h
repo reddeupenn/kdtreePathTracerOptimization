@@ -17,4 +17,5 @@ void pathtrace(uchar4 *pbo, int frame,
                bool compaction,
                bool enablekd,
                bool vizkd,
-               bool USEBBOX);
+               bool USEBBOX,
+               bool SHORTSTACK);

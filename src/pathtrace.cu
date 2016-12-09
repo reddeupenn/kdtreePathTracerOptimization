@@ -920,7 +920,7 @@ __global__ void pathTraceOneBounce(
     , float* obj_REFRIOR
     */
     , int* obj_materialOffsets
-    , int hasobj
+    , bool hasobj
     , bool usebbox
     )
 {
@@ -1189,7 +1189,7 @@ __global__ void pathTraceOneBounceKDfix(
     , KDN::KDnode* nodes
     , int numNodes
     , int* obj_materialOffsets
-    , int hasobj
+    , bool hasobj
     )
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2216,7 +2216,8 @@ __global__ void pathTraceOneBounceKDbare(
     , KDN::NodeBare* nodes
     , int numNodes
     , int* obj_materialOffsets
-    , int hasobj
+    , bool hasobj
+    , bool shortstack
     )
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2284,29 +2285,32 @@ __global__ void pathTraceOneBounceKDbare(
             int iterator = 0;
             if (hasobj)
             {
-                /*
-                traverseKDbare(nodes, numNodes, t,
-                                pathSegment, triangles,
-                                bary, objMaterialIdx,
-                                material_size, hit,
-                                norm, t_min,
-                                hit_geom_index, intersect_point,
-                                normal, tmp_intersect,
-                                tmp_normal, obj_intersect,
-                                intersections, obj_materialOffsets,
-                                path_index);
-                */
-                ///*
-                traverseKDbareShortHybrid(nodes, numNodes, t,
-                                pathSegment, triangles,
-                                bary, objMaterialIdx,
-                                material_size, hit,
-                                norm, t_min,
-                                hit_geom_index, intersect_point,
-                                normal, tmp_intersect,
-                                tmp_normal, obj_intersect,
-                                intersections, obj_materialOffsets,
-                                path_index);
+                if (shortstack == false)
+                {
+                    traverseKDbare(nodes, numNodes, t,
+                                   pathSegment, triangles,
+                                   bary, objMaterialIdx,
+                                   material_size, hit,
+                                   norm, t_min,
+                                   hit_geom_index, intersect_point,
+                                   normal, tmp_intersect,
+                                   tmp_normal, obj_intersect,
+                                   intersections, obj_materialOffsets,
+                                   path_index);
+                }
+                else
+                {
+                    traverseKDbareShortHybrid(nodes, numNodes, t,
+                                              pathSegment, triangles,
+                                              bary, objMaterialIdx,
+                                              material_size, hit,
+                                              norm, t_min,
+                                              hit_geom_index, intersect_point,
+                                              normal, tmp_intersect,
+                                              tmp_normal, obj_intersect,
+                                              intersections, obj_materialOffsets,
+                                              path_index);
+                }
                 //*/
                 /*
                 traverseKDshort(nodes, numNodes, t,
@@ -2395,7 +2399,7 @@ __global__ void pathTraceOneBounceKDbareBoxes(
     , KDN::NodeBare* nodes
     , int numNodes
     , int* obj_materialOffsets
-    , int hasobj
+    , bool hasobj
     )
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2571,7 +2575,7 @@ __global__ void pathTraceOneBounceKDbareShortStack(
     , KDN::NodeBare* nodes
     , int numNodes
     , int* obj_materialOffsets
-    , int hasobj
+    , bool hasobj
     )
 {
 
@@ -2887,7 +2891,7 @@ __global__ void pathTraceOneBounceKD(
     , int numTriangles
     , KDN::KDnode* nodes
     , int numNodes
-    , int hasobj
+    , bool hasobj
     )
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -3388,7 +3392,8 @@ void pathtrace(uchar4 *pbo,
                bool compaction,
                bool enablekd,
                bool vizkd,
-               bool usebbox) {
+               bool usebbox,
+               bool shortstack) {
     const int traceDepth = hst_scene->state.traceDepth;
     const Camera &cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
@@ -3579,7 +3584,8 @@ void pathtrace(uchar4 *pbo,
                     , kd_nodesBare
                     , hst_scene->numNodes
                     , obj_materialOffsets
-                    , hst_scene->hasObj);
+                    , hst_scene->hasObj
+                    , shortstack);
                 checkCUDAError("trace one bounce kd");
                 //cudaEventQuery(0);
             }
