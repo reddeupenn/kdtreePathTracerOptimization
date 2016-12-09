@@ -108,7 +108,7 @@ static PathSegment * dev_paths = NULL;
 static PathSegment * dev_paths_cache = NULL;
 static ShadeableIntersection * dev_intersections = NULL;
 
-static const int STACK_SIZE = 2000;
+static const int STACK_SIZE = 4000;
 
 
 struct is_zero_bounce
@@ -921,6 +921,7 @@ __global__ void pathTraceOneBounce(
     */
     , int* obj_materialOffsets
     , int hasobj
+    , bool usebbox
     )
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1003,16 +1004,25 @@ __global__ void pathTraceOneBounce(
                     //printf("\nmaterial index = %d", objMaterialIdx);
 
                     // check bounding intersection first
-                    float T = intersectBbox(pathSegment.ray.origin,
-                        pathSegment.ray.direction,
-                        glm::vec3(obj_polysbboxes[i] - 0.01, 
-                                  obj_polysbboxes[i + 1] - 0.01, 
-                                  obj_polysbboxes[i + 2] - 0.01),
-                        glm::vec3(obj_polysbboxes[i + 3] + 0.01, 
-                                  obj_polysbboxes[i + 4] + 0.01, 
-                                  obj_polysbboxes[i + 5] + 0.01));
+                    float T = -1.0f;
+                    
+                    if (usebbox)
+                    {
+                        T = intersectBbox(pathSegment.ray.origin,
+                                          pathSegment.ray.direction,
+                                          glm::vec3(obj_polysbboxes[i] - 0.01,
+                                          obj_polysbboxes[i + 1] - 0.01,
+                                          obj_polysbboxes[i + 2] - 0.01),
+                                          glm::vec3(obj_polysbboxes[i + 3] + 0.01,
+                                          obj_polysbboxes[i + 4] + 0.01,
+                                          obj_polysbboxes[i + 5] + 0.01));
+                    }
+                    else
+                    {
+                        T = 0;
+                    }
 
-                    //if (T > -1.0f)
+                    if (T > -1.0f)
                     {
                         for (int j = iterator; j < iterator + obj_polyoffsets[i]; j += 3)
                         {
@@ -1343,7 +1353,8 @@ __global__ void pathTraceOneBounceKDfix(
                                             //(1 - bary.x - bary.y); bary.x; bary.y
                                             //printf("material id: %d\n", triangles[i].mtlIdx);
                                             hit = pathSegment.ray.origin + pathSegment.ray.direction* bary.z;// (bary2.x * v1 + bary2.y * v2 + bary2.z * v3);
-                                            norm = -glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                            norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
+                                            
                                             //norm(glm::normalize(n1));
                                             hit += norm*0.0001f;
 
@@ -1553,8 +1564,8 @@ int& path_index)
                                 //printf("material id: %d\n", triangles[i].mtlIdx);
                                 hit = pathSegment.ray.origin + pathSegment.ray.direction* bary.z;// (bary2.x * v1 + bary2.y * v2 + bary2.z * v3);
                                 norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
-                                //norm(glm::normalize(n1));
-                                hit += norm*0.0001f;
+                                //norm = glm::vec3(0.0f, 1.0f, 0.0f);
+                                hit += norm*0.00001f;
 
 
                                 t = glm::distance(pathSegment.ray.origin, hit);
@@ -1569,7 +1580,7 @@ int& path_index)
                                     tmp_normal = normal;
                                     obj_intersect = true;
                                     intersections[path_index].t = t;
-                                    return;
+                                    //return;
                                 }
                             }
                         }
@@ -1734,7 +1745,7 @@ int& path_index)
                                         tmp_normal = normal;
                                         obj_intersect = true;
                                         intersections[path_index].t = t;
-                                        return;
+                                        //return;
                                     }
                                 }
                             }
@@ -1803,7 +1814,7 @@ int& path_index)
                                         tmp_normal = normal;
                                         obj_intersect = true;
                                         intersections[path_index].t = t;
-                                        return;
+                                        //return;
                                     }
                                 }
                             }
@@ -2005,7 +2016,7 @@ int& path_index)
                             tmp_normal = normal;
                             obj_intersect = true;
                             intersections[path_index].t = t;
-                            return;
+                            //return;
                         }
                     }
                 }
@@ -2133,7 +2144,7 @@ int& path_index)
                             tmp_normal = normal;
                             obj_intersect = true;
                             intersections[path_index].t = t;
-                            return;
+                            //return;
                         }
                     }
                 }
@@ -2297,6 +2308,18 @@ __global__ void pathTraceOneBounceKDbare(
                                 intersections, obj_materialOffsets,
                                 path_index);
                 //*/
+                /*
+                traverseKDshort(nodes, numNodes, t,
+                pathSegment, triangles,
+                bary, objMaterialIdx,
+                material_size, hit,
+                norm, t_min,
+                hit_geom_index, intersect_point,
+                normal, tmp_intersect,
+                tmp_normal, obj_intersect,
+                intersections, obj_materialOffsets,
+                path_index);
+                */
             }
 
             if (hit_geom_index == -1)
@@ -3364,7 +3387,8 @@ void pathtrace(uchar4 *pbo,
                bool testingmode,
                bool compaction,
                bool enablekd,
-               bool vizkd) {
+               bool vizkd,
+               bool usebbox) {
     const int traceDepth = hst_scene->state.traceDepth;
     const Camera &cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
@@ -3505,7 +3529,8 @@ void pathtrace(uchar4 *pbo,
                 //, obj_REFR
                 //, obj_REFRIOR
                 , obj_materialOffsets
-                , hst_scene->hasObj);
+                , hst_scene->hasObj
+                , usebbox);
             checkCUDAError("trace one bounce");
             ///*
             //printf("numNodes = %d\n", hst_scene->numNodes);

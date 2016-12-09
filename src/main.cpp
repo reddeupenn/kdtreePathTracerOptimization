@@ -33,9 +33,10 @@ static float dtheta = 0, dphi = 0;
 static glm::vec3 cammove;
 
 static bool rayCaching = true;// false;
-static bool antialias = false;// true;
+static bool antialias = true;
 static float softness = 0.0f;
 static bool SSS = false;
+static bool USEBBOX = false;
 
 float zoom, theta, phi;
 glm::vec3 cameraPosition;
@@ -54,7 +55,7 @@ static float dofDistance = 6.0f;
 static bool TESTINGMODE = false;
 static bool COMPACTION = true;
 static bool ENABLEKD = true;
-static bool VIZKD = false;
+static bool VIZKD = true;
 
 
 /*
@@ -1210,7 +1211,8 @@ void runCuda() {
                   TESTINGMODE,
                   COMPACTION,
                   ENABLEKD,
-                  VIZKD);
+                  VIZKD,
+                  USEBBOX);
 
         /*
         if (TESTINGMODE)
@@ -1336,7 +1338,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         }
         else if (key == GLFW_KEY_V){
             VIZKD = !VIZKD;
-            printf("\VIZKD = %s\n", VIZKD == 0 ? "disabled" : "enabled");
+            printf("VIZKD = %s\n", VIZKD == 0 ? "disabled" : "enabled");
+            camchanged = true;
+        }
+        else if (key == GLFW_KEY_B){
+            USEBBOX = !USEBBOX;
+            printf("USINGBBOX = %s\n", USEBBOX == 0 ? "disabled" : "enabled");
             camchanged = true;
         }
     }

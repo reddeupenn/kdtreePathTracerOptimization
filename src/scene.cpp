@@ -556,15 +556,15 @@ std::vector<KDN::Triangle*> Scene::getTrianglesFromScene_(void)
                 obj_verts[pidxo3],
                 obj_verts[pidxo3 + 1],
                 obj_verts[pidxo3 + 2],
-                -obj_norms[pidxo1],
-                -obj_norms[pidxo1 + 1],
-                -obj_norms[pidxo1 + 2],
-                -obj_norms[pidxo2],
-                -obj_norms[pidxo2 + 1],
-                -obj_norms[pidxo2 + 2],
-                -obj_norms[pidxo3],
-                -obj_norms[pidxo3 + 1],
-                -obj_norms[pidxo3 + 2]);
+                obj_norms[pidxo1],
+                obj_norms[pidxo1 + 1],
+                obj_norms[pidxo1 + 2],
+                obj_norms[pidxo2],
+                obj_norms[pidxo2 + 1],
+                obj_norms[pidxo2 + 2],
+                obj_norms[pidxo3],
+                obj_norms[pidxo3 + 1],
+                obj_norms[pidxo3 + 2]);
 
             t->mtlIdx = i;
             triangles.push_back(t);
@@ -868,8 +868,8 @@ void Scene::loadObj(string filepath, string mtlpath)
     KDT = new KDtree(triangles);
     KDT->rootNode->updateBbox();
 
-    int splitDepth = ceil(log10((double)triangles.size())*1);
-    KDT->split(/*splitDepth*/12);
+    int splitDepth = round(log10((double)triangles.size())*1);
+    KDT->split(/*splitDepth*/13);
 
     // Accessing kd nodes and triangles as a flat structure
     // This is to help recursion removal for CUDA
@@ -893,6 +893,8 @@ void Scene::loadObj(string filepath, string mtlpath)
     numNodes = nodesLoopDeref.size();
     newNodes = new KDN::KDnode[numNodes];
     memcpy(newNodes, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
+
+    printf("num nodes = %d\n", numNodes);
 
     // cache reduced data
     cacheNodesBare();
@@ -951,15 +953,15 @@ void Scene::cacheTrianglesBare()
         newTrianglesBare[i].z2 = newTriangles[i].z2;
         newTrianglesBare[i].z3 = newTriangles[i].z3;
 
-        newTrianglesBare[i].nx1 = -newTriangles[i].nx1;
-        newTrianglesBare[i].nx2 = -newTriangles[i].nx2;
-        newTrianglesBare[i].nx3 = -newTriangles[i].nx3;
-        newTrianglesBare[i].ny1 = -newTriangles[i].ny1;
-        newTrianglesBare[i].ny2 = -newTriangles[i].ny2;
-        newTrianglesBare[i].ny3 = -newTriangles[i].ny3;
-        newTrianglesBare[i].nz1 = -newTriangles[i].nz1;
-        newTrianglesBare[i].nz2 = -newTriangles[i].nz2;
-        newTrianglesBare[i].nz3 = -newTriangles[i].nz3;
+        newTrianglesBare[i].nx1 = newTriangles[i].nx1;
+        newTrianglesBare[i].nx2 = newTriangles[i].nx2;
+        newTrianglesBare[i].nx3 = newTriangles[i].nx3;
+        newTrianglesBare[i].ny1 = newTriangles[i].ny1;
+        newTrianglesBare[i].ny2 = newTriangles[i].ny2;
+        newTrianglesBare[i].ny3 = newTriangles[i].ny3;
+        newTrianglesBare[i].nz1 = newTriangles[i].nz1;
+        newTrianglesBare[i].nz2 = newTriangles[i].nz2;
+        newTrianglesBare[i].nz3 = newTriangles[i].nz3;
 
         newTrianglesBare[i].mtlIdx = newTriangles[i].mtlIdx;
     }

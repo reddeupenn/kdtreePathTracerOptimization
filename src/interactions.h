@@ -106,14 +106,14 @@ float getFresnelValOld(const glm::vec3& I, const glm::vec3& N, const float& ior)
         etat = tmp;
     }
 
-    float sint = etai / etat * glm::sqrt(std::max(0.f, 1.0f - cosi * cosi));
+    float sint = etai / etat * glm::sqrt(max(0.0f, 1.0f - cosi * cosi));
     
     // check if reflection
     if (sint >= 1.0f) 
         return 1.0f;
     else 
     {
-        float cost = glm::sqrt(std::max(0.0f, 1.0f - sint*sint));
+        float cost = glm::sqrt(max(0.0f, 1.0f - sint*sint));
         cosi = glm::abs(cosi);
 
         float s = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
