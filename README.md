@@ -69,7 +69,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   ![treetest2](./presentation/cornell.2016-11-28_08-15-26z.84samp.png)
 
   * Implementation update 2.  
-  Finally managed to get the entire geometry to get traversed using a non recursive solution.  This is not ideal but it's still quite a lot faster than having a bounding box.  Not complete yet but the results are stating to look promising.  THe data structure in place was flattened to compensate the lack of recursion in CUDA.  Here's the stanford bunny with a little over 200k vertices:  
+  Finally managed to get the entire geometry to get traversed using a non recursive solution.  This is not ideal but it's still quite a lot faster than having a bounding box.  Not complete yet but the results are stating to look promising.  The data structure in place was flattened to compensate the lack of recursion in CUDA.  Here's the stanford bunny with a little over 200k vertices:  
   ![treetest3](./presentation/cornell.2016-11-28_08-15-26z.84samp.png)
   
   * Data structure changes:  
@@ -114,14 +114,26 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
 
 
   * Some debug views for tree visualization:  
-   * stanford bunny tree:
+   * stanford bunny tree:  
    ![bunnytree1](./presentation/cornell.2016-12-05_03-41-26z.294samp.png)
    
-   * predator front tree view:
-   ![bunnytree1](./presentation/cornell.2016-12-07_22-54-52z.833samp_front.png)
-   * predator side tree view:
-   ![bunnytree1](./presentation/cornell.2016-12-07_22-54-52z.833samp_side.png.png)
+   * predator front tree view:  
+   ![predatortree1](./presentation/cornell.2016-12-07_22-54-52z.833samp_front.png)
+   * predator side tree view:  
+   ![predatortree2](./presentation/cornell.2016-12-07_22-54-52z.833samp_side.png)
 
+  * The Gutenberg model was the heavyest and the most interesting to test.  The scanned model is very dense which makes it an ideal candidate for testing.  Here's the wireframe views to illustrate.  
+   * wireframe.  
+   ![gutenbergwire1](./presentation/dense_1mil.png)
+  
+   * head closeup:  
+   ![gutenbergwire2](./presentation/dense_1mil_1.png)
+
+   * torso closeup:  
+   ![gutenbergwire3](./presentation/dense_1mil_2.png)
+
+
+  * Performance Analysis
 
 
 
