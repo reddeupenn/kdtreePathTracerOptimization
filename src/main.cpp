@@ -32,12 +32,11 @@ static bool camchanged = true;
 static float dtheta = 0, dphi = 0;
 static glm::vec3 cammove;
 
-static bool rayCaching = true;// false;
+static bool rayCaching = false;
 static bool antialias = true;
 static float softness = 0.0f;
 static bool SSS = false;
-static bool USEBBOX = false;
-static bool SHORTSTACK = true;
+
 
 float zoom, theta, phi;
 glm::vec3 cameraPosition;
@@ -56,7 +55,9 @@ static float dofDistance = 6.0f;
 static bool TESTINGMODE = false;
 static bool COMPACTION = true;
 static bool ENABLEKD = true;
-static bool VIZKD = true;
+static bool USEBBOX = false;
+static bool SHORTSTACK = true;
+static bool VIZKD = false;
 
 
 /*

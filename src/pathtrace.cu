@@ -3671,7 +3671,10 @@ void pathtrace(uchar4 *pbo,
     {
         //printf("\n\n-------- average times --------");
         //printf("\ngenerateRayFromCamera time = %f", millisecondsGenRayFromCam);
-        printf("\n   pathTraceOneBounce time = %f", millisecondsPathTraceOneBounce);// / iter);
+
+        printf("   pathTraceOneBounce time = %f\n", millisecondsPathTraceOneBounce);// / iter);
+        //printf("%f,\n", millisecondsPathTraceOneBounce);// / iter);
+
         //printf("\n        shadeMaterial time = %f\n", millisecondsShadeMaterial / iter);
 
         //printf("\n[%f, %f, %f], ", millisecondsGenRayFromCam, 
