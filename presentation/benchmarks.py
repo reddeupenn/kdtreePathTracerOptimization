@@ -520,7 +520,7 @@ tests = [test1, test2, test3, test4, test5, test6, test7, test8]
 for i in range(len(tests)):
     tests[i] = splitXYZarray(tests[i])
 
-print test1
+#print test1
 
 
 matplotlib.rc("figure", facecolor="black")
@@ -615,7 +615,7 @@ rects3 = ax.bar(xaxis+width*2.0, p_kd, width, color='#118888')
 rects4 = ax.bar(xaxis+width*3.0, p_kdshortstack, width, color='#1166cc')
 rects5 = ax.bar(xaxis+width*4.0, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], width, color='#1166cc')
 
-fig = plt.figure(facecolor='black')
+fig2 = plt.figure(facecolor='black')
 fig.patch.set_facecolor('black')
 ax.patch.set_facecolor('black')
 
@@ -638,7 +638,9 @@ autolabel(rects4)
 
 ax.axis((1,9,0,3000))
 
-plt.show()
+
+fig.savefig('benchmark_results1.png', transparent=True)
+
 
 '''
 # show shading graph which is invisible at the moment
@@ -669,7 +671,7 @@ plt.show()
 
 #fig.delaxes(ax)
 fig, ax = plt.subplots()
-plt.rcParams['lines.linewidth'] = 2
+plt.rcParams['lines.linewidth'] = 1
 
 for i in range(4):
     #fig, ax = plt.subplots()
@@ -683,7 +685,8 @@ for i in range(4):
     ax.tick_params(axis='x', colors='white')
     ax.tick_params(axis='y', colors='white')
 
-    ax.plot([T1[i].mean(), 
+    ax.plot([0.0,
+             T1[i].mean(), 
              T2[i].mean(), 
              T3[i].mean(), 
              T4[i].mean(), 
@@ -697,8 +700,9 @@ for i in range(4):
 
 
 legend(['bruteforce', 'bounding box', 'kd-tree', 'short-stack kd-tree'])
+fig.savefig('benchmark_results2.png', transparent=True)
 
-plt.show()
+#plt.show()
 
 
 

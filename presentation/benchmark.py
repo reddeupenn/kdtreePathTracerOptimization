@@ -169,7 +169,7 @@ for i in range(8):
     for j in range(len(percentlabels)):
         percentlabels[j] += (' %.1f' % percent[j])+'''%'''
 
-    plt.legend(pie[0], percentlabels, loc='upper corner')
+    plt.legend(pie[0], percentlabels, loc='upper left')
 
     plt.savefig('piechart_%d.png' % i, bbox_inches='tight', facecolor='black')
     #plt.show()

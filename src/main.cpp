@@ -60,25 +60,11 @@ static bool SHORTSTACK = true;
 static bool VIZKD = false;
 
 
-/*
-struct saxpy_functor2 { 
-    const float a; 
-    saxpy_functor2(float _a) : a(_a) {} 
-    __host__ __device__ 
-        float operator()(const float& x, const float& y) const 
-    { 
-        return a * x + y; 
-    } 
-}; 
-void saxpy_fast2(float A, thrust::device_vector<float>& X, thrust::device_vector<float>& Y) 
-{ 
-    // Y <- A * X + Y 
-    thrust::transform(X.begin(), X.end(), Y.begin(), Y.begin(), saxpy_functor2(A)); 
-}
+//-------------------------------
+//------------TESTS--------------
+//-------------------------------
 
-*/
-
-
+// read triangle data and cache it
 std::vector<KDN::Triangle*> _getTrianglesFromScene(Scene* scene)
 {
     vector<KDN::Triangle*> triangles;
@@ -126,6 +112,7 @@ std::vector<KDN::Triangle*> _getTrianglesFromScene(Scene* scene)
     return triangles;
 }
 
+// read triangle data from file and cache it
 std::vector<KDN::Triangle*> _getTrianglesFromFile(const char* path)
 {
     std::vector<KDN::Triangle*>triangles;
@@ -157,7 +144,6 @@ std::vector<KDN::Triangle*> _getTrianglesFromFile(const char* path)
     return triangles;
 }
 
-
 // fast AABB intersection
 bool _intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
 {
@@ -175,18 +161,7 @@ bool _intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
 
     float dmin = max(max(min(v1, v2), min(v3, v4)), min(v5, v6));
     float dmax = min(min(max(v1, v2), max(v3, v4)), max(v5, v6));
-    /*
-    if (dmin < 0 || dmax > dmin)
-    {
-        dist = -1;
-        return false;
-    }
-    else
-    {
-        dist = dmax;
-        return true;
-    }
-    */
+
     if (dmax < 0)
     {
         dist = dmax;
@@ -205,7 +180,7 @@ bool _intersectAABB(Ray r, KDN::BoundingBox b, float& dist)
     return true;
 }
 
-
+// test intersection algorithm
 float _intersectKD(Ray r, KDN::KDnode* node, float mindist = FLT_MAX)
 {
     r.origin = glm::vec3(2.0f, 2.0f, 2.0f);
@@ -265,7 +240,7 @@ float _intersectKD(Ray r, KDN::KDnode* node, float mindist = FLT_MAX)
     return dist;
 }
 
-
+// recursively traverse the tree
 void _getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
 {
     if (root != NULL)
@@ -276,6 +251,7 @@ void _getKDnodes(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
+// traverse the tree non recursively
 void _getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
 {
     KDN::KDnode* currNode = root;
@@ -316,7 +292,7 @@ void _getKDnodesLoop(KDN::KDnode* root, vector<KDN::KDnode*>& nodes)
     }
 }
 
-
+// loop version of copies tree traversal
 void _getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
 {
     KDN::KDnode* currNode = root;
@@ -358,8 +334,7 @@ void _getKDnodesLoopDeref(KDN::KDnode* root, vector<KDN::KDnode>& nodes)
     }
 }
 
-
-
+// loop version of copies tree traversal
 float _intersectKDLoop(Ray r, vector<KDN::KDnode*> nodes)
 {
     float dist = -1.0;
@@ -612,7 +587,7 @@ float _intersectKDLoopDeref(Ray r, KDN::KDnode* nodes, int numNodes, KDN::Triang
     return dist;
 }
 
-
+// cache triangle data to flat structure
 vector<int> _cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triangle>& newTriangles)
 {
     
@@ -647,7 +622,7 @@ vector<int> _cacheTriangles(KDN::KDnode* nodes, int numNodes, vector<KDN::Triang
     return offsets;
 }
 
-
+// cache triangle data to flat structure
 vector<int> _cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangle>& newTriangles)
 {
 
@@ -682,6 +657,7 @@ vector<int> _cacheTriangles(std::vector<KDN::KDnode*> nodes, vector<KDN::Triangl
     return offsets;
 }
 
+// cache triangle data to flat structure
 vector<int> _cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle>& newTriangles)
 {
 
@@ -716,6 +692,7 @@ vector<int> _cacheTriangles(std::vector<KDN::KDnode> nodes, vector<KDN::Triangle
     return offsets;
 }
 
+// cleanup
 void _deleteTree(KDN::KDnode* root)
 {
     if (root != NULL)
@@ -734,6 +711,7 @@ void _deleteTree(KDN::KDnode* root)
     }
 }
 
+// comparator
 bool _nodeComparator(const void* a, const void* b)
 {
     int ida = (*(KDN::KDnode*)a).ID;
@@ -744,6 +722,11 @@ bool _nodeComparator(const void* a, const void* b)
     else if (ida > idb)
         return false;
 }
+//-------------------------------
+//-----------END TESTS-----------
+//-------------------------------
+
+
 
 //-------------------------------
 //-------------MAIN--------------
@@ -751,9 +734,12 @@ bool _nodeComparator(const void* a, const void* b)
 
 int main(int argc, char** argv) {
     startTimeString = currentTimeString();
-
+    
+    // DISABLE TESTING 
+    /*
     if (argc > 1)
     {
+        
         // test mode for kdtree
         // run test geometry before exiting
 
@@ -773,13 +759,6 @@ int main(int argc, char** argv) {
                 if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, sceneFile)))
                 {printf("sceneFile = %s\n", sceneFile);}
 
-                /*
-                strcat_s(path, sizeof(char) * 1024, "/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data");
-                printf("path = %s\n", path);
-
-                // read the file and save triangles into vector
-                std::vector<KDN::Triangle*> triangles = _getTrianglesFromFile(path);
-                */
 
 
                 // use OBJ file:
@@ -794,29 +773,17 @@ int main(int argc, char** argv) {
                 //scene->loadObj(objPath, objPath.substr(0, objPath.find_last_of("/\\") + 1));
                 scene->loadObj("C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/data.obj",
                                "C:/Users/moi/git/CIS565/kdtreePathTracerOptimization/rnd/houdini/");
-
-
-                
+ 
                 std::vector<KDN::Triangle*> triangles = _getTrianglesFromScene(scene);
-                
-
-
-
-
-
-
 
                 // test kdtree class generator
-                //KDtree* KDT = new KDtree(path);
                 KDtree* KDT = new KDtree(triangles);
                 KDT->rootNode->updateBbox();
-
 
                 KDT->printTree();
 
                 cout << KDT->rootNode << endl;
                 cout << KDT->rootNode->getRoot() << endl;
-
 
                 KDT->rootNode->printTriangleCenters();
                 KDT->printTree();
@@ -826,11 +793,9 @@ int main(int argc, char** argv) {
                 printf("\nreprinting after split\n");
                 KDT->printTree();
 
-                                
                 KDT->rootNode->printTriangleCenters();
 
                 cout << KDT << endl;
-
 
                 // write out data before quitting
                 char pathout[1024];
@@ -843,46 +808,39 @@ int main(int argc, char** argv) {
 
                 KDT->writeKDtoFile(KDT->rootNode, pathout);
 
-
-
-                          
-
                 // Accessing kd nodes and triangles as a flat structure
                 // This is to help recursion removal for CUDA
                 // THANK YOU NVIDIA for this...
                 vector<KDN::KDnode*> nodes;
                 _getKDnodes(KDT->rootNode, nodes);
                 std::sort(nodes.begin(), nodes.end(), _nodeComparator);
-
-                
-                /*
+          
                 // ------------------------------------------------------------
-                // IMPORTANT:  This is the flattening part of the triangle data
+                // This is the flattening part of the triangle data
                 // ------------------------------------------------------------
                 // print and get the new triangle count needed to pass to the functions
-                int triCount = 0;
-                vector<int> offsets;
-                vector<KDN::Triangle> newTriangles;
-                for (int i = 0; i < nodes.size(); i++)
-                {
-                    int numTriangles = nodes[i]->triangles.size();
-                    if (numTriangles > 0)
-                    {
-                        triCount += numTriangles;
-                        offsets.push_back(triCount);
-
-                        for (int j = 0; j < numTriangles; j++)
-                        {
-                            newTriangles.push_back(nodes[i]->triangles[j][0]);
-                        }
-                    }
-
-                    std::cout << "node: " << nodes[i] << " numtris: " << numTriangles << std::endl;
-                }
+                //int triCount = 0;
+                //vector<int> offsets;
+                //vector<KDN::Triangle> newTriangles;
+                //for (int i = 0; i < nodes.size(); i++)
+                //{
+                //    int numTriangles = nodes[i]->triangles.size();
+                //    if (numTriangles > 0)
+                //    {
+                //        triCount += numTriangles;
+                //        offsets.push_back(triCount);
+                //
+                //        for (int j = 0; j < numTriangles; j++)
+                //        {
+                //            newTriangles.push_back(nodes[i]->triangles[j][0]);
+                //        }
+                //    }
+                //
+                //    std::cout << "node: " << nodes[i] << " numtris: " << numTriangles << std::endl;
+                //}
                 // ------------------------------------------------------------
                 // IMPORTANT:  USE THIS FOR TRIANGLES ACCESS !!!!!!!!!!!!!!!!!!
                 // ------------------------------------------------------------
-                */
                 
                 vector<KDN::Triangle> newTriangles;
                 vector<int> offsets = _cacheTriangles(nodes, newTriangles);
@@ -896,7 +854,6 @@ int main(int argc, char** argv) {
                 vector<KDN::KDnode> nodesLoopDeref;
                 _getKDnodesLoopDeref(KDT->rootNode, nodesLoopDeref);
                 std::sort(nodesLoopDeref.begin(), nodesLoopDeref.end());
-
 
                 for (int i = 0; i < nodes.size(); i++)
                 {
@@ -912,8 +869,6 @@ int main(int argc, char** argv) {
                 printf("SIZEOF Triangle*: %d\n", sizeof(KDN::Triangle*));
                 printf("SIZEOF KDnode*: %d\n", sizeof(KDN::KDnode*));
                 printf("SIZEOF KDnode: %d\n", sizeof((nodes[0])[0]));
-                
-
 
                 // TEST OFFSETS AND TRIANGLE DATA
                 for (int i = 0; i < offsets.size(); i++)
@@ -936,7 +891,6 @@ int main(int argc, char** argv) {
                     }
                 }
 
-
                 // TEST NODE TRIANGLE OFFSETS AND TRIANGLE DATA
                 for (int i = 0; i < nodesLoopDeref.size(); i++)
                 {
@@ -956,23 +910,18 @@ int main(int argc, char** argv) {
                 printf("NUM NEW TRIANGLES: %d\n", offsets[offsets.size()-1]);
 
 
-                /*
-                for (int i = 0; i < triangles.size(); i++)
-                {
-                    printf("triangle: [%f %f %f]\n", triangles[i]->center[0]
-                                                   , triangles[i]->center[1]
-                                                   , triangles[i]->center[2]);
-                }
-                */
-                /*
-                float dist;
-                intersectAABB(r, KDT->rootNode->bbox, dist);
+                //for (int i = 0; i < triangles.size(); i++)
+                //{
+                //    printf("triangle: [%f %f %f]\n", triangles[i]->center[0]
+                //                                   , triangles[i]->center[1]
+                //                                   , triangles[i]->center[2]);
+                //}
 
-                glm::vec3 intersect = r.origin + r.direction*dist;
-                printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
-                */
-
-
+                //float dist;
+                //intersectAABB(r, KDT->rootNode->bbox, dist);
+                //
+                //glm::vec3 intersect = r.origin + r.direction*dist;
+                //printf("INTERSECT POINT: P: [%f %f %f]\n", intersect.x, intersect.y, intersect.z);
 
 
                 // test collisions
@@ -997,42 +946,42 @@ int main(int argc, char** argv) {
                 memcpy(nodesPtr, nodesLoopDeref.data(), sizeof(KDN::KDnode)*numNodes);
                 //std::copy(nodesLoopDeref.begin(), nodesLoopDeref.end(), nodesPtr);
 
-                /*
+                
                 // print nodes vector and nodesderef vectors
-                for (int i = 0; i < nodesLoop.size(); i++)
-                {
-                    printf("     nodesloop: %d p:%d l:%d r:%d\nnodesloopderef: %d p:%d l:%d r:%d\n  nodesloopptr: %d p:%d l:%d r:%d\n", nodesLoop[i]->ID,
-                           nodesLoop[i]->parentID,
-                           nodesLoop[i]->leftID,
-                           nodesLoop[i]->rightID,
-                           nodesLoopDeref[i].ID,
-                           nodesLoopDeref[i].parentID,
-                           nodesLoopDeref[i].leftID,
-                           nodesLoopDeref[i].rightID,
-                           nodesPtr[i].ID,
-                           nodesPtr[i].parentID,
-                           nodesPtr[i].leftID,
-                           nodesPtr[i].rightID);
-                    
-                    //if (nodesLoop[i]->leftID != -1)
-                    //    printf("     nodesloop: l:%d %d\nnodesloopderef: l:%d %d\n  nodesloopptr: l:%d %d\n",
-                    //    nodesLoop[i]->left->ID,
-                    //    nodesLoop[i]->leftID,
-                    //    nodesLoopDeref[i].left->ID,
-                    //    nodesLoopDeref[i].leftID,
-                    //    nodesPtr[i].left->ID,
-                    //    nodesPtr[i].leftID);
-
-                    //if (nodesLoop[i]->rightID != -1)
-                    //    printf("     nodesloop: r:%d %d\nnodesloopderef: r:%d %d\n  nodesloopptr: r:%d %d\n",
-                    //    nodesLoop[i]->right->ID,
-                    //    nodesLoop[i]->rightID,
-                    //    nodesLoopDeref[i].right->ID,
-                    //    nodesLoopDeref[i].rightID,
-                    //    nodesPtr[i].right->ID,
-                    //    nodesPtr[i].rightID);
-                }
-                */
+                //for (int i = 0; i < nodesLoop.size(); i++)
+                //{
+                //    printf("     nodesloop: %d p:%d l:%d r:%d\nnodesloopderef: %d p:%d l:%d r:%d\n  nodesloopptr: %d p:%d l:%d r:%d\n", nodesLoop[i]->ID,
+                //           nodesLoop[i]->parentID,
+                //           nodesLoop[i]->leftID,
+                //           nodesLoop[i]->rightID,
+                //           nodesLoopDeref[i].ID,
+                //           nodesLoopDeref[i].parentID,
+                //           nodesLoopDeref[i].leftID,
+                //           nodesLoopDeref[i].rightID,
+                //           nodesPtr[i].ID,
+                //           nodesPtr[i].parentID,
+                //           nodesPtr[i].leftID,
+                //           nodesPtr[i].rightID);
+                //    
+                //    //if (nodesLoop[i]->leftID != -1)
+                //    //    printf("     nodesloop: l:%d %d\nnodesloopderef: l:%d %d\n  nodesloopptr: l:%d %d\n",
+                //    //    nodesLoop[i]->left->ID,
+                //    //    nodesLoop[i]->leftID,
+                //    //    nodesLoopDeref[i].left->ID,
+                //    //    nodesLoopDeref[i].leftID,
+                //    //    nodesPtr[i].left->ID,
+                //    //    nodesPtr[i].leftID);
+                //
+                //    //if (nodesLoop[i]->rightID != -1)
+                //    //    printf("     nodesloop: r:%d %d\nnodesloopderef: r:%d %d\n  nodesloopptr: r:%d %d\n",
+                //    //    nodesLoop[i]->right->ID,
+                //    //    nodesLoop[i]->rightID,
+                //    //    nodesLoopDeref[i].right->ID,
+                //    //    nodesLoopDeref[i].rightID,
+                //    //    nodesPtr[i].right->ID,
+                //    //    nodesPtr[i].rightID);
+                //}
+                
 
                 
                 //printf("numnodes = %d %d %d\n", numNodes, nodesLoopDeref.size(), nodesLoop.size());
@@ -1052,14 +1001,13 @@ int main(int argc, char** argv) {
 
 
                 delete KDT;
-                //deleteTree(KD->getRoot());
-
 
                 _CrtDumpMemoryLeaks();
                 return 0;
             }
         }
     }
+    */
 
 
     if (argc < 2) {

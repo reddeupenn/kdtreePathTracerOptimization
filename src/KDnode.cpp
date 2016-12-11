@@ -163,7 +163,7 @@ void KDN::KDnode::split(int maxdepth)
             right->split(maxdepth);
     }
     // don't split if we have less than 2 triangles
-    else if (num > 1)
+    else if (num > 2)
     {
         int level = getLevel(this);
 
