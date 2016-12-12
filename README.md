@@ -99,8 +99,8 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   * Dragon with a different scene an over 8600 iterations.  
   ![dragon2](./presentation/cornell8.2016-12-09_03-59-21z.8628samp.png) 
 
-  * Audi R8 with over 1.69 million vertices (5000 iterations)
-  ![r81](./presentation/cornell.2016-12-07_07-13-33z.5000samp.png) 
+  * Audi R8 with over 1.69 million vertices (30000 iterations)
+  ![r81](./presentation/cornell8.2016-12-12_07-19-15z.30000samp.png) 
   * Back view with 15000 iterations.  
   ![r82](./presentation/cornell8.2016-12-09_16-12-42z.15000samp.png)
 
