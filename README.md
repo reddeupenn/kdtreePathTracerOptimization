@@ -1,10 +1,63 @@
 # kdtreePathTracerOptimization
 KD tree optimization for path tracing
 
-CIS565 Final Project Fall 2016 
+University of Pennsylvania, CIS 565: Final Project Fall 2016 
 Rony Edde
 
 ### K-D Tree optimizations for path tracer
+This is KD-tree implementation for accelerated path tracing.
+* ![reflections](./presentation/cornell.2016-12-08_02-53-36z.15000samp.png)
+
+* Controls
+  * Esc to save an image and exit.
+  * S to save an image. Watch the console for the output filename.
+  * Space to re-center the camera at the original scene lookAt point.
+  * A for enabling / disabling anti-aliasing.
+  * 0 for resetting depth of field to zero focal length and zero blur.
+  * - for decreasing depth of field.
+  * = for increasing depth of field.
+  * [ for decreasing focal length.
+  * ] for increasing focal length.
+  * C for enabling / disabling ray caching and sorting (disbled by default).
+  * X for enabling / disabling subsurface scattering (only materials with sss).
+  * F for enabling / disabling stream compaction and ray sorting by material.
+  * T for enabling / disabling benchmark tests.
+  * 1 reduce soft reflections/refractions.
+  * 2 increase soft reflections/refractions.
+  * B for enabling / disabling bounding box optimization (only when kd disabled).
+  * K for enabling / disbling KD tree optimization.
+  * V for visualizing the KD tree.
+  * L for enabling / disabling short-stack traversal (when KD is enabled).
+  * Keyboard up shifts the camera up.
+  * Keyboard down shifts the camera down.
+  * Keyboard left shifts the camera left.
+  * Keyboard right shifts the camera right.
+  * Left mouse button to rotate the camera.
+  * Right mouse button on the vertical axis to zoom in/out.
+  * Middle mouse button to move the LOOKAT point in the scene's X/Z plane.
+
+* Building the project
+   * Create a build directory.
+   * cd ./build
+   * run cmake gui up a directory: cmake-gui ../
+   * make sure the CUDA SDK path is correct (you need to find the path to the SDK).
+   * Configure.
+   * Build.
+   * in windows you can run "explorer *.sln" to open the project.
+   * in Solution Explorer right-click on kdtreePathTracerOptimization select Set as StartUp Project.
+   * Ctrl+F5 builds and runs the code.
+   * You will not see anything initially because you need to supply a scene file and / or an obj file.  
+   There are 2 ways of doing this, either in the command line like so:  
+   ./kdtreePathTracerOptimization.exe ../../scenes/cornell9.txt ../../scenes/dragon_5.obj  
+   Alternatively you can do this in Visual Studio like so:  
+   In the Solution Explorer, Right-click on kdtreePathTracerOptimization select properties.
+   properties->debugging, under Command Arguments add the following: 
+   ../scenes/cornell9.txt ../scenes/dragon_5.obj  
+   * Ctrl+F5 should run and load the scene with the obj.
+   * Obj files need to have materials, normals and uv coordinates otherwize they cannot be loaded. 
+
+
+### Intro
 Shooting rays through a complex scene with a large number of
 polygons can be heavy and exponentially slow even on the GPU.  Axis
 Aligned Bounding boxes help improve performance, however this still
@@ -28,6 +81,7 @@ the graphics card.  Just accessing the entire geometry without an optimized data
 
 Streaming alone, however presents additional complexities for optimization.  KD-Trees will need to be adaptive and fast in order to account for this.  Another option is to split the complexity in sub-trees in order to fit in memory, thus reducing the impact caused by streaming. This could have an impact on the benefit of using KD-Trees and can also present issues when rendering double sided geometry.
 
+### Development Process
 * Initial tentative road map
 The project will consist of coming up with and implementing a K-D Tree that solves these issues with CPU and GPU generation.
 
@@ -64,13 +118,13 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   * Implementation update 1.  
   KD implementation on the way.  Managed to preview section sof the tree in the path tracer.
   The results are starting to look promising despite the disabled shading.  It's now possible to see the bounding regions from the initial implementation.  Still not fully implemented but visibly sectioning the geometry which was the initial intention.  
-  * Getting there:  
+  * Getting there one step at a time:  
   ![treetest1](./presentation/cornell.2016-11-28_08-15-26z.2samp.png)
   ![treetest2](./presentation/cornell.2016-11-28_08-15-26z.84samp.png)
 
   * Implementation update 2.  
   Finally managed to get the entire geometry to get traversed using a non recursive solution.  This is not ideal but it's still quite a lot faster than having a bounding box.  Not complete yet but the results are stating to look promising.  The data structure in place was flattened to compensate the lack of recursion in CUDA.  Here's the stanford bunny with a little over 200k vertices:  
-  ![treetest3](./presentation/cornell.2016-11-28_08-15-26z.84samp.png)
+  ![treetest3](./presentation/cornell.2016-12-03_19-33-26z.4068samp.png)
   
   * Data structure changes:  
   Instead of keeping a node data structure which can be nested, there were some important modification to allow non recursive GPU calls.  The node data structure was flattened by decoupling the node structure and traversal from the geometry.  There are now 2 types of pointers being stored separately with a lookup index and offset to the polygonal data.  KDnode and KDtriangle are the flattened versions that are allocated for the tree traversal.
@@ -133,7 +187,28 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
    ![gutenbergwire3](./presentation/dense_1mil_2.png)
 
 
-  * Performance Analysis
+  * Performance Analysis  
+   * The performance was measured with the same model across increasing resolutions.  The model used was a Stanford Dragon with 3k, 4.5k, 9k, 18.4k, 37.5k, 75k, 150k and 300k vertices.
+    Here are the results:
+   * ![benchmark1](benchmark_results1.png)  
+   We can immediately see a drastic increase in performance.  When using the bounding box only optimization or no optimizations, the scene crashed.
+   That's the reason why the last entries are blank for bruteforce and bounding box.  
+   Here's are the plotted curves:  
+   * ![benchmark2](benchmark_results2.png)  
+   Again we can see the failed bounding box and bruteforce methods.  The biggest increase was 10 fold for the naive kdtree traversal and 20 fold when using short-stack.  This is a great improvement over
+   the standard traversal.  
+
+   * There is obviously a slight overhead for traversing the tree.  This overhead, as minimal as it is can reduce performance over a bruteforce method when the mesh resolution is too low to justify using a kdtree.
+   The model used was a simple low resolution spheren mesh with increased complexity.  The following benchmark was run on the following mesh densities: 60, 240, 540, 960, 1.5k, 2.16k, 2.94k, 3.84k vertices.
+
+   * ![benchmark1](benchmark_results_low_1.png)  
+   Notice how the performace drops when using a kdtree.  This occurs below 1.8k vertices approximately.  Notice how the bounding box optimization also converges and we see no benefit from using a bounding box when the density is around 60 vertices.
+   The intersection point is around 1.8k.  Past this point using a kdtree starts to have an advantage.  The higher the complexity, the more useful the tree becomes which is expected.  
+   Here's the plotted graph:  
+   * ![benchmark2](benchmark_results_low_2.png)  
+
+   
+
 
 
 
