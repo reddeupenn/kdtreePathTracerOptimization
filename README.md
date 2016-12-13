@@ -106,29 +106,34 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   * Houdini visualization network.
   ![houdiniviztool](./images/houdini_network.png)
 
-  * Bugs are not trivial to track down.  At first the tree was going deeper than expected with duplication along the way.  This is easy to see now that the setup is in place.  This makes degugging a lot easier The initial results look promising.
+  * Bugs are not trivial to track down.  At first the tree was going deeper than expected with duplication along the way.  Also, resizing the bounds introduced an offset which moved the splitting plane.  This is easy to see now that the setup is in place. Degugging a lot easier.  The initial results look promising despite the offset which was rectified later on.
   ![iterations1](./images/iterations_1.gif)
   ![stanfordbunny1](./images/stanfordbunny_1.gif)
 
-  * Result of a one branch traversal seem to be working correctly.
+  * Result of a one branch traversal seem to be working (notice the splitting place offset bug).
   ![onebranch1](./images/onebranch_1.gif)
 
-  * Next milestone will be to generate and traverse the tree using loops.  Removing all recursion is not trivial, nor is it cleaner but it's necessary for CUDA because of the lack of recusrion and the non dynamic memory allocation needed for optimization.
+  * Next milestone was to generate and traverse the tree using loops and correcting the bound resizing.  Removing all recursion is not trivial, nor is it cleaner but it's necessary for CUDA because of the lack of recusrion and the non dynamic memory allocation needed for optimization.
 
   * Implementation update 1.  
-  KD implementation on the way.  Managed to preview section sof the tree in the path tracer.
+  KD implementation on the way.  Managed to preview sections of the tree in the path tracer.
   The results are starting to look promising despite the disabled shading.  It's now possible to see the bounding regions from the initial implementation.  Still not fully implemented but visibly sectioning the geometry which was the initial intention.  
   * Getting there one step at a time:  
   ![treetest1](./presentation/cornell.2016-11-28_08-15-26z.2samp.png)
   ![treetest2](./presentation/cornell.2016-11-28_08-15-26z.84samp.png)
 
   * Implementation update 2.  
-  Finally managed to get the entire geometry to get traversed using a non recursive solution.  This is not ideal but it's still quite a lot faster than having a bounding box.  Not complete yet but the results are stating to look promising.  The data structure in place was flattened to compensate the lack of recursion in CUDA.  Here's the stanford bunny with a little over 200k vertices:  
+  Finally managed to get the entire geometry to get traversed using a non recursive solution.  This is not ideal but it's still quite a lot faster than using one bounding box.  It's not complete yet but the results are stating to look promising.  The data structure in place was flattened to compensate the lack of recursion in CUDA.  Here's the stanford bunny with a little over 200k vertices:  
   ![treetest3](./presentation/cornell.2016-12-03_19-33-26z.4068samp.png)
   
   * Data structure changes:  
-  Instead of keeping a node data structure which can be nested, there were some important modification to allow non recursive GPU calls.  The node data structure was flattened by decoupling the node structure and traversal from the geometry.  There are now 2 types of pointers being stored separately with a lookup index and offset to the polygonal data.  KDnode and KDtriangle are the flattened versions that are allocated for the tree traversal.
-
+  Instead of keeping a node data structure which can be nested, there were some important modification to allow non recursive GPU calls.  The node data structure was flattened by decoupling the node structure and traversal from the geometry.  There are now 2 types of pointers being stored separately with a lookup index and offset to the polygonal data.  KDnode and KDtriangle are the flattened versions that are allocated for the tree traversal.  
+  This however meant that the data structures stored information for building the tree and that would potentially have an impact on the limited GPU memory, so reducing the size was necessary.  Traversing the tree required indexing only so data reduction was straighforward.  
+  The result is 2 data structures: NodeBare and TriBare with the following sizes:  
+  NodeBare: 64 / TriBare: 76.  
+  The original KDnode and KDtriangle classes used respectively 136 and 116 Bytes.  
+  Resulting in using 47% and 65% memory from the initial KDnode and KDtriangle memory respectively.  
+  
   * Implementation update 3.
   Now that the code is a bit more stable, I've decided to go a step further and implement a short stack tree traversal method described in this paper by Daniel Reiter Horn Jeremy Sugerman Mike Houston and Pat Hanrahan: [Interactive k-D Tree GPU Raytracing](https://pdfs.semanticscholar.org/cd1d/d45dcee7c44a513befd3e00b6dfc3b34ee95.pdf).  
   The first issue was to deal with the lost nodes.  This was due to the nodes that are skipped prematurely which is when the algorithm shifts back to a standard stackless traversal.  This was less than desirable and introduced complexity that needed to be addressed.  Here's the initial failed approach:  
@@ -207,7 +212,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
    Here's the plotted graph:  
    * ![benchmark2](benchmark_results_low_2.png)  
 
-   
+
 
 
 
