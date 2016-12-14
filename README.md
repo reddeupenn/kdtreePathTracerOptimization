@@ -206,11 +206,12 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
    * There is obviously a slight overhead for traversing the tree.  This overhead, as minimal as it is can reduce performance over a bruteforce method when the mesh resolution is too low to justify using a kdtree.
    The model used was a simple low resolution spheren mesh with increased complexity.  The following benchmark was run on the following mesh densities: 60, 240, 540, 960, 1.5k, 2.16k, 2.94k, 3.84k vertices.  
 
-   * ![benchmark1](./presentation/benchmark_results_low_1.png)  
+   * ![benchmark1](./presentation/benchmark_results_low1.png)  
    Notice how the performace drops when using a kdtree.  This occurs below 1.8k vertices approximately.  Notice how the bounding box optimization also converges and we see no benefit from using a bounding box when the density is around 60 vertices.
    The intersection point is around 1.8k.  Past this point using a kdtree starts to have an advantage.  The higher the complexity, the more useful the tree becomes which is expected.  
    Here's the plotted graph:  
-   * ![benchmark2](./presentation/benchmark_results_low_2.png)  
+   * ![benchmark2](./presentation/benchmark_results_low:w
+   2.png)  
   
 
    Thank you!
