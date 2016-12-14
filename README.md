@@ -6,7 +6,9 @@ Rony Edde
 
 ### K-D Tree optimizations for path tracer
 This is KD-tree implementation for accelerated path tracing.  
-![titleimage](./presentation/cornell.2016-12-08_02-53-36z.15000samp.png)
+![titleimage](./presentation/cornell.2016-12-08_02-53-36z.15000samp.png)  
+[Video Demo](https://vimeo.com/195362217)  
+[Breakdown](./presentation/kd_path_tracer_breakdown.pdf)  
 
 * Controls
   * Esc to save an image and exit.
@@ -152,7 +154,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   ![treetest6](./presentation/short_stack_hybrid_traversal.gif)  
   Notice how half the tree is ignored.  
   * Testing the algorithm on heavy geometry:  
-  The following tests were conducted on heavy geometry taken from[TurboSquid](http://www.turbosquid.com)  
+  The following tests were conducted on heavy geometry taken from [TurboSquid](http://www.turbosquid.com)  
   * Cornell Dragon with 300k vertices (5000 iterations)  
   ![dragon1](./presentation/cornell.2016-12-05_08-07-17z.5000samp.png) 
   * Dragon with a different scene an over 8600 iterations.  
