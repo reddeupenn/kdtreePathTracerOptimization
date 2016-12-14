@@ -119,7 +119,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   KD implementation on the way.  Managed to preview sections of the tree in the path tracer.
   The results are starting to look promising despite the disabled shading.  It's now possible to see the bounding regions from the initial implementation.  Still not fully implemented but visibly sectioning the geometry which was the initial intention.  
   * Getting there one step at a time:  
-  ![treetest1](./presentation/cornell.2016-11-28_08-15-26z.2samp_small.png)  
+  ![treetest1](./presentation/cornell.2016-11-28_08-15-26z.2samp_small.png)
   ![treetest2](./presentation/cornell.2016-11-28_08-15-26z.84samp_small.png)
 
   * Implementation update 2.  
