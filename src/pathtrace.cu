@@ -802,7 +802,6 @@ __global__ void pathTraceOneBounceKDfix(
                                             
                                             hit += norm*0.0001f;
 
-
                                             t = glm::distance(pathSegment.ray.origin, hit);
 
                                             if (t > 0.0f && t_min > t)
@@ -836,7 +835,6 @@ __global__ void pathTraceOneBounceKDfix(
             else
             {
                 thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
-
 
                 if (obj_intersect)
                 {
@@ -1132,7 +1130,6 @@ int& path_index)
                                 bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
                                                                              pathSegment.ray.direction,
                                                                              v1, v2, v3, bary);
-
                                 if (intersected)
                                 {
                                     // skip other side
@@ -1196,7 +1193,6 @@ int& path_index)
                                 bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
                                                                              pathSegment.ray.direction,
                                                                              v1, v2, v3, bary);
-
                                 if (intersected)
                                 {
                                     // skip other side
@@ -1260,7 +1256,6 @@ ShadeableIntersection* intersections,
 int* obj_materialOffsets,
 int& path_index)
 {
-
     NodeStack stack[STACK_SIZE];
     int top = -1;
 
@@ -1367,7 +1362,6 @@ int& path_index)
             if (pushdown)
                 root = node;
 
-
             bboxintersect = intersectAABBarrays(pathSegment.ray, node->mins, node->maxs, dist);
             if (bboxintersect)
             {
@@ -1384,7 +1378,6 @@ int& path_index)
                     bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
                                                                  pathSegment.ray.direction,
                                                                  v1, v2, v3, bary);
-
                     if (intersected)
                     {
                         glm::vec3 n1(T->nx1, T->ny1, T->nz1);
@@ -1470,7 +1463,6 @@ int& path_index)
     float tClosestIntersection = t_min;
     bool notFullyTraversed = true;
 
-
     while (notFullyTraversed)
     {
         if (node->triIdSize != 0)
@@ -1493,7 +1485,6 @@ int& path_index)
                     bool intersected = glm::intersectRayTriangle(pathSegment.ray.origin,
                                                                  pathSegment.ray.direction,
                                                                  v1, v2, v3, bary);
-
                     if (intersected)
                     {
                         glm::vec3 n1(T->nx1, T->ny1, T->nz1);
@@ -1725,7 +1716,6 @@ __global__ void pathTraceOneBounceKDbare(
                                softness);
                 }
 
-
                 if (obj_intersect)
                 {
                     intersections[path_index].t = t_min;
@@ -1849,10 +1839,8 @@ __global__ void pathTraceOneBounceKDbareBoxes(
             }
             else
             {
-
                 // updating rays
                 thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
-
 
                 if (obj_intersect)
                 {
@@ -1918,7 +1906,6 @@ __global__ void pathTraceOneBounceKDbareShortStack(
     , bool hasobj
     )
 {
-
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (path_index < num_paths)
@@ -2001,7 +1988,6 @@ __global__ void pathTraceOneBounceKDbareShortStack(
             }
             else
             {
-
                 // updating rays
                 thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
 
@@ -2030,7 +2016,6 @@ __global__ void pathTraceOneBounceKDbareShortStack(
                                rng,
                                softness);
                 }
-
 
                 if (obj_intersect)
                 {
@@ -2125,7 +2110,6 @@ __global__ void pathTraceOneBounceKD(
                     intersect_point = tmp_intersect;
                     normal = tmp_normal;
                 }
-                
             }
 
             objMaterialIdx = -1;
@@ -2226,12 +2210,10 @@ __global__ void pathTraceOneBounceKD(
                                             //       intersect.z,
                                             //       currID);
 
-
                                             norm = glm::normalize((1 - bary.x - bary.y) * n1 + bary.x * n2 + (bary.y) * n3);
                                             //norm(glm::normalize(n1));
                                             //intersect += norm*0.0001f;
-
-                                                
+               
                                             t = dist;
                                                 
                                             if (t > 0.0f && t_min > t)
@@ -2273,7 +2255,6 @@ __global__ void pathTraceOneBounceKD(
                 //The ray hits something
                 // updating rays
                 thrust::default_random_engine rng = makeSeededRandomEngine(iter, path_index, depth);
-
 
                 if (obj_intersect)
                 {
@@ -2528,7 +2509,6 @@ void pathtrace(uchar4 *pbo,
             ///*
             //printf("numNodes = %d\n", hst_scene->numNodes);
             //printf("numTriangles = %d\n", hst_scene->numTriangles);
-
         }
         else
         {

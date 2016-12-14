@@ -2,8 +2,6 @@
 
 #include "intersections.h"
 
-
-// CHECKITOUT
 /**
  * Computes a cosine-weighted random direction in a hemisphere.
  * Used for diffuse lighting.
@@ -122,7 +120,6 @@ float getFresnelValOld(const glm::vec3& I, const glm::vec3& N, const float& ior)
     }
 
     return 0.0;
-    //TODO crashes needs rewrite
 }
 
 
@@ -194,7 +191,6 @@ float intersectBbox(glm::vec3 origin, glm::vec3 direction, glm::vec3 mincoords, 
  * This method applies its changes to the Ray parameter `ray` in place.
  * It also modifies the color `color` of the ray in place.
  *
- * You may need to change the parameter list for your purposes!
  */
 __host__ __device__
 void scatterRay(
@@ -205,29 +201,21 @@ void scatterRay(
         const Material &m,
         thrust::default_random_engine &rng,
         float softness) {
-    // TODO: implement this.
-    // A basic implementation of pure-diffuse shading will just call the
-    // calculateRandomDirectionInHemisphere defined above.
-
 
     if (m.transmittance.x > 0.0f || m.transmittance.y > 0.0f || m.transmittance.z > 0.0f)
     {
         thrust::uniform_real_distribution<float> u01(0, 1);
         float randval = u01(rng);
-        //float avg = glm::length(m.transmittance);
+
         if (randval < 0.5f && !ray.isinside) // reflect inside
         {
-            //ray.direction = -glm::reflect(ray.direction, normal);
-            //ray.direction = calculateRandomDirectionInHemisphere(-normal, rng);
 
-            ///*
             glm::vec3 v = randSphericalVec(0.0001, rng);
             float angle = acos(glm::dot(glm::vec3(0.0f, 0.0f, -1.0f), ray.direction));
             glm::vec3 axis(0.0f, 0.0f, -1.0f);
             axis = glm::normalize(glm::cross(axis, ray.direction));
             ray.direction = rotateVector(v, axis, angle);
 
-            //*/
             ray.origin += ray.direction * 0.0001f;
             ray.sdepth = glm::distance(ray.origin, intersect);
             ray.isinside = true;
@@ -239,26 +227,6 @@ void scatterRay(
             ray.sdepth = 0.0; // stop computing depth since ray is outside
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
     else if (m.hasRefractive != 0.0f)
     {
         thrust::uniform_real_distribution<float> u01(0, 1);
@@ -349,8 +317,7 @@ void scatterRay(
         if (randval < m.hasReflective) // reflect
         {
             ray.direction = glm::reflect(ray.direction, normal);
-
-            
+        
             // enable soft reflections
             if (softness > 0.0f)
             {
@@ -370,31 +337,6 @@ void scatterRay(
             ray.origin = intersect + normal*0.00001f;
         }
     }
-    
-
-    /*
-    else if (m.hasRefractive != 0.0f)
-    {
-        ray.direction = glm::refract(ray.direction, normal, m.indexOfRefraction);
-        ray.origin = intersect+normal*0.00001f;
-        ray.isinside = !ray.isinside;
-    }
-    */
-    /*
-    else if (m.specular.exponent != 0.0f)
-    {
-        glm::vec3 v = randSphericalVec(0.5, rng);
-        float angle = acos(glm::dot(glm::vec3(0.0f, 0.0f, 1.0f), normal));
-        glm::vec3 axis(0.0f, 0.0f, 1.0f);
-        axis = glm::normalize(glm::cross(axis, normal));
-        ray.direction = rotateVector(v, axis, angle);
-        
-        //ray.direction = randSphericalVec(0.1, normal, rng); //glm::refract(ray.direction, normal, m.indexOfRefraction);
-        ray.origin = intersect + normal*0.00001f;
-        ray.isinside = false;
-        
-    }
-    */
     else
     { 
         // use uniform spherical distribution
@@ -412,6 +354,5 @@ void scatterRay(
 
         ray.origin = intersect+normal*0.00001f;
         ray.isinside = false;  
-    }
-    
+    }  
 }

@@ -1,7 +1,5 @@
 #include "KDnode.h"
-
 static int currentID = 0;
-
 
 KDN::KDnode::KDnode()
 {
@@ -310,7 +308,6 @@ void KDN::KDnode::printTree(KDnode* root)
                     root->bbox.mins[0], root->bbox.mins[1], root->bbox.mins[2],
                     root->bbox.maxs[0], root->bbox.maxs[1], root->bbox.maxs[2]);
         }
-
 
         printTree(root->left);
         printTree(root->right);

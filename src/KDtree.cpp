@@ -3,22 +3,13 @@
 
 #pragma once
 
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-
 #include <random>
 #include <stdio.h>
 #include <vector>
-
 #include <string>
 #include <fstream>
-
 #include <iostream>
 #include <iomanip>
-
-#include <Shlobj.h>
-
 
 #include "KDtree.h"
 
@@ -78,7 +69,6 @@ void KDtree::deleteTree(KDN::KDnode* root)
             root->left = NULL;
         if (root->right != NULL)
             root->right = NULL;
-
         //for (int i = 0; i < root->triangles.size(); i++)
         //{
         //    delete root->triangles[i];

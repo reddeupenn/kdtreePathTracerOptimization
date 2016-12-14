@@ -1,10 +1,11 @@
-# kdtreePathTracerOptimization
 KD tree optimization for path tracing
+=====================================
 
-University of Pennsylvania, CIS 565: Final Project Fall 2016 
-Rony Edde
+**University of Pennsylvania, CIS 565: CIS 565: Final Project Fall 2016**
 
-### K-D Tree optimizations for path tracer
+* Rony Edde (redde)
+* Tested on: Windows 10, i7-6700k @ 4.00GHz 64GB, GTX 980M 8GB (Personal Laptop)
+
 This is KD-tree implementation for accelerated path tracing.  
 ![titleimage](./presentation/cornell.2016-12-08_02-53-36z.15000samp.png)  
 [Video Demo](https://vimeo.com/195362217)  
@@ -115,7 +116,12 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   * Result of a one branch traversal seem to be working (notice the splitting place offset bug).  
   ![onebranch1](./images/onebranch_1.gif)
 
-  * Next milestone was to generate and traverse the tree using loops and correcting the bound resizing.  Removing all recursion is not trivial, nor is it cleaner but it's necessary for CUDA because of the lack of recusrion and the non dynamic memory allocation needed for optimization.
+  * After fixing the offset bug, we finally have a working tree and we can start the gpu binding.  
+  Here are the results of the corrected sectioning.  
+  ![fixedsplit1](./presentation/KDTree-animation_fixedoffset.gif)  
+  ![fixedsplit2](./presentation/fixed_split.gif)
+
+  * The next milestone was to generate and traverse the tree using loops and correcting the bound resizing.  Removing all recursion is not trivial, nor is it cleaner but it's necessary for CUDA because of the lack of recusrion and the non dynamic memory allocation needed for optimization.
 
   * Implementation update 1.  
   KD implementation on the way.  Managed to preview sections of the tree in the path tracer.
@@ -214,6 +220,13 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
    Here's the plotted graph:  
    * ![benchmark2](./presentation/benchmark_results_low2.png)  
   
+
+   * Credit:  
+   GLSL Utilities: Varun Sampath, Patrick Cozzi, and Yining Karl Li.  
+   [tinyObj](https://syoyo.github.io/tinyobjloader/)  
+   [Shlick's approximation formula](https://en.wikipedia.org/wiki/Schlick%27s_approximation)  
+   [turbosquid obj models](http://www.turbosquid.com)  
+
 
    Thank you!
 

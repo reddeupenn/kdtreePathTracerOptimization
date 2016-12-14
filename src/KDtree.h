@@ -3,19 +3,13 @@
 
 #pragma once
 #include <stdlib.h>
-#include <crtdbg.h>
-
 #include <random>
 #include <stdio.h>
 #include <vector>
-
 #include <string>
 #include <fstream>
-
 #include <iostream>
 #include <iomanip>
-
-#include <Shlobj.h>
 
 #include "KDnode.h"
 
