@@ -3,7 +3,7 @@ KD tree optimization for path tracing
 
 **University of Pennsylvania, CIS 565: CIS 565: Final Project Fall 2016**
 
-* Rony Edde (redde)
+* Rony Edde (redde)  
 * Tested on: Windows 10, i7-6700k @ 4.00GHz 64GB, GTX 980M 8GB (Personal Laptop)
 
 This is KD-tree implementation for accelerated path tracing.  
