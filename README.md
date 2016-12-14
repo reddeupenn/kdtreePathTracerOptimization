@@ -147,7 +147,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
 
   * Going back to stackless traversal we have to visit all the nodes that intersect the ray regardless of the bounds.  This is a safe approach but can be inefficient when the ray already hit the closest split plane.  Here's an illustration of the traversal.  Square nodes represent leaf nodes which contain geometry.  The red node represents the location of the closest triangle that the ray is supposed to hit correctly.  The traversal in the naive approach is illustrated below:    
   ![treetest6](./presentation/naive_traversal.gif)  
-  * In order to prevent reviting nodes that are farther, the short-stack implementation is the most sensible approach.  We check to see if the left or right node is closer to the ray on the division axis.  If the left node is closer, we push the right node to the stack and start working on the left node.  
+  * In order to prevent revisiting nodes that are farther, the short-stack implementation is the most sensible approach.  We check to see if the left or right node is closer to the ray on the division axis.  If the left node is closer, we push the right node to the stack and start working on the left node.  
   But rather than implementing a standard short-stack, I went with a hybrid approach which uses the short stack logic but instead of leaving the nodes that are farther away to revisit, there is an additional check that "tags" the far node if collision has occured with the closest node, effectively removing all undelying nodes and reducing the number of nodes needed to be traversed.  Here's an illustration of how that works:    
   ![treetest6](./presentation/short_stack_hybrid_traversal.gif)  
   Notice how half the tree is ignored.  
@@ -195,22 +195,22 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   * Performance Analysis  
    * The performance was measured with the same model across increasing resolutions.  The model used was a Stanford Dragon with 3k, 4.5k, 9k, 18.4k, 37.5k, 75k, 150k and 300k vertices.
     Here are the results:  
-   * ![benchmark1](benchmark_results1.png)  
+   * ![benchmark1](./presentation/benchmark_results1.png)  
    We can immediately see a drastic increase in performance.  When using the bounding box only optimization or no optimizations, the scene crashed.
    That's the reason why the last entries are blank for bruteforce and bounding box.  
    Here's are the plotted curves:  
-   * ![benchmark2](benchmark_results2.png)  
+   * ![benchmark2](./presentation/benchmark_results2.png)  
    Again we can see the failed bounding box and bruteforce methods.  The biggest increase was 10 fold for the naive kdtree traversal and 20 fold when using short-stack.  This is a great improvement over
    the standard traversal.  
 
    * There is obviously a slight overhead for traversing the tree.  This overhead, as minimal as it is can reduce performance over a bruteforce method when the mesh resolution is too low to justify using a kdtree.
    The model used was a simple low resolution spheren mesh with increased complexity.  The following benchmark was run on the following mesh densities: 60, 240, 540, 960, 1.5k, 2.16k, 2.94k, 3.84k vertices.  
 
-   * ![benchmark1](benchmark_results_low_1.png)  
+   * ![benchmark1](./presentation/benchmark_results_low_1.png)  
    Notice how the performace drops when using a kdtree.  This occurs below 1.8k vertices approximately.  Notice how the bounding box optimization also converges and we see no benefit from using a bounding box when the density is around 60 vertices.
    The intersection point is around 1.8k.  Past this point using a kdtree starts to have an advantage.  The higher the complexity, the more useful the tree becomes which is expected.  
    Here's the plotted graph:  
-   * ![benchmark2](benchmark_results_low_2.png)  
+   * ![benchmark2](./presentation/benchmark_results_low_2.png)  
   
 
    Thank you!
