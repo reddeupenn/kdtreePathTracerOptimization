@@ -222,6 +222,7 @@ Currently building the main KD-Tree library in rnd as a stand alone library.  Th
   
 
    * Credit:  
+   [Interactive k-D Tree GPU Raytracing](https://pdfs.semanticscholar.org/cd1d/d45dcee7c44a513befd3e00b6dfc3b34ee95.pdf) by Daniel Reiter Horn, Jeremy Sugerman, Mike Houston and Pat Hanrahan  
    GLSL Utilities: Varun Sampath, Patrick Cozzi, and Yining Karl Li.  
    [tinyObj](https://syoyo.github.io/tinyobjloader/)  
    [Shlick's approximation formula](https://en.wikipedia.org/wiki/Schlick%27s_approximation)  
