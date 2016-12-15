@@ -45,7 +45,8 @@ This is KD-tree implementation for accelerated path tracing.
    * run cmake gui up a directory: cmake-gui ../
    * make sure the CUDA SDK path is correct (you need to find the path to the SDK).
    * Configure.
-   * Build.
+   * Generate.
+   * in linux: cmake ..; make
    * in windows you can run "explorer *.sln" to open the project.
    * in Solution Explorer right-click on kdtreePathTracerOptimization select Set as StartUp Project.
    * Ctrl+F5 builds and runs the code.
